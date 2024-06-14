@@ -1,0 +1,37 @@
+use embassy_stm32 as hal;
+
+// - types --------------------------------------------------------------------
+
+pub type SeedPin0 = hal::peripherals::PB12; // PIN_01, USB OTG ID, I2C3 SCL
+pub type SeedPin1 = hal::peripherals::PC11; // PIN_02, SD Data3, USART3 Rx
+pub type SeedPin2 = hal::peripherals::PC10; // PIN_03, SD Data2, USART3 Tx
+pub type SeedPin3 = hal::peripherals::PC9; // PIN_04, SD Data1, I2C3 SDA
+pub type SeedPin4 = hal::peripherals::PC8; // PIN_05, SD Data0
+pub type SeedPin5 = hal::peripherals::PD2; // PIN_06, SD CMD, UART5 Rx
+pub type SeedPin6 = hal::peripherals::PC12; // PIN_07, SD CLK, UART5 Tx
+pub type SeedPin7 = hal::peripherals::PG10; // PIN_08, SPI1 CS
+pub type SeedPin8 = hal::peripherals::PG11; // PIN_09, SPI1 SCK, SPDIFRX1
+pub type SeedPin9 = hal::peripherals::PB4; // PIN_10, SPI1 MISO
+pub type SeedPin10 = hal::peripherals::PB5; // PIN_11, SPI1 MOSI
+pub type SeedPin11 = hal::peripherals::PB8; // PIN_12, I2C1 SCL, UART4 Rx
+pub type SeedPin12 = hal::peripherals::PB9; // PIN_13, I2C1 SDA, UART4 Tx
+pub type SeedPin13 = hal::peripherals::PB6; // PIN_14, USART1 Tx, I2C4 SCL
+pub type SeedPin14 = hal::peripherals::PB7; // PIN_15, USART1 Rx, I2C4 SDA
+pub type SeedPin15 = hal::peripherals::PC0; // PIN_22, ADC 0
+pub type SeedPin16 = hal::peripherals::PA3; // PIN_23, ADC 1
+pub type SeedPin17 = hal::peripherals::PB1; // PIN_24, ADC 2
+pub type SeedPin18 = hal::peripherals::PA7; // PIN_25, ADC 3
+pub type SeedPin19 = hal::peripherals::PA6; // PIN_26, ADC 4
+pub type SeedPin20 = hal::peripherals::PC1; // PIN_27, ADC 5
+pub type SeedPin21 = hal::peripherals::PC4; // PIN_28, ADC 6
+pub type SeedPin22 = hal::peripherals::PA5; // PIN_29, DAC OUT 2, ADC 7
+pub type SeedPin23 = hal::peripherals::PA4; // PIN_30, DAC OUT 1, ADC 8
+pub type SeedPin24 = hal::peripherals::PA1; // PIN_31, SAI2 MCLK, ADC 9
+pub type SeedPin25 = hal::peripherals::PA0; // PIN_32, SAI2 SD B, ADC 10
+pub type SeedPin26 = hal::peripherals::PD11; // PIN_33, SAI2 SD A
+pub type SeedPin27 = hal::peripherals::PG9; // PIN_34, SAI2 SD FS
+pub type SeedPin28 = hal::peripherals::PA2; // PIN_35, SAI2 SCK, ADC 11
+pub type SeedPin29 = hal::peripherals::PB14; // PIN_36, USB1 D-, USART1 Tx
+pub type SeedPin30 = hal::peripherals::PB15; // PIN_37, USB1 D+, USART1 Rx
+
+pub type LedUserPin = hal::peripherals::PC7; // LED_USER
