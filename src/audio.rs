@@ -37,8 +37,10 @@ pub struct Interface<'a> {
 
     function_ptr: Option<fn(f32, &mut Block)>,
 
-    hal_dma1_stream0: Option<Transfer<'a>>,
-    hal_dma1_stream1: Option<Transfer<'a>>,
-    hal_sai1: Option<hal::sai::Sai<'a, peripherals::SAI1, u8>>,
-    hal_i2c2: Option<hal::i2c::I2c<'a, hal::mode::Async>>,
+    hal_dma1_stream0: Transfer<'a>,
+    hal_dma1_stream1: Transfer<'a>,
+    hal_sai1: hal::sai::Sai<'a, peripherals::SAI1, u8>,
+    hal_i2c2: hal::i2c::I2c<'a, hal::mode::Async>,
+}
+
 }
