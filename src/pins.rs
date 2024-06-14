@@ -37,6 +37,17 @@ pub type SeedPin30 = hal::peripherals::PB15; // PIN_37, USB1 D+, USART1 Rx
 pub type LedUserPin = hal::peripherals::PC7; // LED_USER
 
 #[allow(non_snake_case)]
+pub struct WM8731Pins {
+    pub SCL:    hal::peripherals::PH4,    // I2C SCL
+    pub SDA:    hal::peripherals::PB11,   // I2C SDA
+    pub MCLK_A: hal::peripherals::PE2,    // SAI1 MCLK_A
+    pub SCK_A:  hal::peripherals::PE5,    // SAI1 SCK_A
+    pub FS_A:   hal::peripherals::PE4,    // SAI1 FS_A
+    pub SD_A:   hal::peripherals::PE6,    // SAI1 SD_A
+    pub SD_B:   hal::peripherals::PE3     // SAI1 SD_B
+}
+
+#[allow(non_snake_case)]
 pub struct USB2Pins {
     pub DN: hal::peripherals::PA11, // USB2 D-
     pub DP: hal::peripherals::PA12, // USB2 D+
