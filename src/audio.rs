@@ -2,7 +2,8 @@ use embassy_stm32 as hal;
 use hal::{dma::Transfer, peripherals, time::Hertz};
 // - global constants ---------------------------------------------------------
 
-const FS: Hertz = embassy_stm32::time::Hertz(48000); 
+const FS: Hertz = Hertz(48000);
+const I2C_FS: Hertz = Hertz(100_000);
 pub const BLOCK_LENGTH: usize = 32;                             // 32 samples
 pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2;     //  2 channels
 pub const DMA_BUFFER_LENGTH:usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-blocks
