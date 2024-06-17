@@ -58,6 +58,9 @@ impl <'a> Interface<'a> {
         sai_config.data_size = DataSize::Data24;
         sai_config.clock_strobe = ClockStrobe::Falling;
         hal::sai::Sai::new_asynchronous(peri, sck, sd, fs, dma, dma_buf, sai_config);
+
+        let i2c_config = hal::i2c::Config::default();
+        let i2c2 = embassy_stm32::i2c::I2c::new(peri, i2c2_pins.0, i2c2_pins.1, irq, tx_dma, rx_dma, I2C_FS, i2c_config)
         // - configure dma1 ---------------------------------------------------
 
         let dma1_streams = dma::dma::StreamsTuple::new(unsafe { pac::Peripherals::steal().DMA1 }, dma1_rec);
