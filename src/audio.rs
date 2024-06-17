@@ -4,9 +4,9 @@ use hal::{dma::Transfer, peripherals, time::Hertz};
 
 const FS: Hertz = Hertz(48000);
 const I2C_FS: Hertz = Hertz(100_000);
-pub const BLOCK_LENGTH: usize = 32;                             // 32 samples
-pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2;     //  2 channels
-pub const DMA_BUFFER_LENGTH:usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-blocks
+pub const BLOCK_LENGTH: usize = 32; // 32 samples
+pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2; //  2 channels
+pub const DMA_BUFFER_LENGTH: usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-blocks
 
 // - static data --------------------------------------------------------------
 
@@ -22,11 +22,11 @@ pub type Block = [Frame; BLOCK_LENGTH];
 
 pub type Sai1Pins = (
     // gpio::gpiob::PB11<gpio::Output<gpio::PushPull>>,  // PDN
-    peripherals::PE2,     // MCLK_A
-    peripherals::PE5,     // SCK_A
-    peripherals::PE4,     // FS_A
-    peripherals::PE6,     // SD_A
-    peripherals::PE3,     // SD_B
+    peripherals::PE2, // MCLK_A
+    peripherals::PE5, // SCK_A
+    peripherals::PE4, // FS_A
+    peripherals::PE6, // SD_A
+    peripherals::PE3, // SD_B
 );
 
 pub type I2C2Pins = (
@@ -45,14 +45,14 @@ pub struct Interface<'a> {
     hal_i2c2: hal::i2c::I2c<'a, hal::mode::Async>,
 }
 
-impl <'a> Interface<'a> {
+impl<'a> Interface<'a> {
     pub fn init(
         clocks: &hal::rcc::CoreClocks,
         sai1_rec: hal::rcc::rec::Sai1, // reset and enable control
         sai1_pins: Sai1Pins,
         i2c2_rec: hal::rcc::rec::I2c2, // reset and enable control
         i2c2_pins: I2C2Pins,
-        dma1_rec: hal::rcc::rec::Dma1
+        dma1_rec: hal::rcc::rec::Dma1,
     ) -> Result<Interface<'a>, Error> {
         use hal::sai::{ClockStrobe, Config, DataSize};
         let mut sai_config = Config::new();
@@ -64,7 +64,8 @@ impl <'a> Interface<'a> {
         let i2c2 = embassy_stm32::i2c::I2c::new(peri, i2c2_pins.0, i2c2_pins.1, irq, tx_dma, rx_dma, I2C_FS, i2c_config)
         // - configure dma1 ---------------------------------------------------
 
-        let dma1_streams = dma::dma::StreamsTuple::new(unsafe { pac::Peripherals::steal().DMA1 }, dma1_rec);
+        let dma1_streams =
+            dma::dma::StreamsTuple::new(unsafe { pac::Peripherals::steal().DMA1 }, dma1_rec);
 
         // dma1 stream 0
         let rx_buffer: &'static mut [u32; DMA_BUFFER_LENGTH] = unsafe { &mut RX_BUFFER };
@@ -86,8 +87,9 @@ impl <'a> Interface<'a> {
 
         // dma1 stream 1
         let tx_buffer: &'static mut [u32; DMA_BUFFER_LENGTH] = unsafe { &mut TX_BUFFER };
-        let dma_config = dma_config.transfer_complete_interrupt(true)
-                                   .half_transfer_interrupt(true);
+        let dma_config = dma_config
+            .transfer_complete_interrupt(true)
+            .half_transfer_interrupt(true);
 
         // is later overwritten to be a M2P stream! (HAL doesn't support this yet)
         let dma1_str1: dma::Transfer<_, _, dma::PeripheralToMemory, _, _> = dma::Transfer::init(
@@ -128,9 +130,13 @@ impl <'a> Interface<'a> {
 
         // manually configure Channel B as transmit stream
         let dma1_reg = unsafe { pac::Peripherals::steal().DMA1 };
-        dma1_reg.st[0].cr.modify(|_ , w | w.dir().peripheral_to_memory());
+        dma1_reg.st[0]
+            .cr
+            .modify(|_, w| w.dir().peripheral_to_memory());
         // manually configure Channel A as receive stream
-        dma1_reg.st[1].cr.modify(|_ , w | w.dir().memory_to_peripheral());
+        dma1_reg.st[1]
+            .cr
+            .modify(|_, w| w.dir().memory_to_peripheral());
 
         // - configure i2c ---------------------------------------------------
 
@@ -152,7 +158,6 @@ impl <'a> Interface<'a> {
             hal_dma1_stream1: Some(dma1_str1),
             hal_sai1: Some(sai1),
             hal_i2c2: Some(i2c2),
-
         })
     }
 }
