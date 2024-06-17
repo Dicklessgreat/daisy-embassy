@@ -53,7 +53,11 @@ impl <'a> Interface<'a> {
         i2c2_pins: I2C2Pins,
         dma1_rec: hal::rcc::rec::Dma1
     ) -> Result<Interface<'a>, Error> {
-        hal::sai::Sai::new_asynchronous(peri, sck, sd, fs, dma, dma_buf, config)
+        use hal::sai::{ClockStrobe, Config, DataSize};
+        let mut sai_config = Config::new();
+        sai_config.data_size = DataSize::Data24;
+        sai_config.clock_strobe = ClockStrobe::Falling;
+        hal::sai::Sai::new_asynchronous(peri, sck, sd, fs, dma, dma_buf, sai_config);
         // - configure dma1 ---------------------------------------------------
 
         let dma1_streams = dma::dma::StreamsTuple::new(unsafe { pac::Peripherals::steal().DMA1 }, dma1_rec);
