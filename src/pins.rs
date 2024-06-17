@@ -103,7 +103,7 @@ pub struct Pins {
 
     // board peripherals
     pub LED_USER: LedUserPin,
-    // pub AK4556: AK4556Pins,
+    pub WM8731: WM8731Pins,
     pub FMC: FMCPins,
     pub SDRAM: (), // TODO
     pub USB2: USB2Pins,
