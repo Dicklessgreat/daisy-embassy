@@ -1,7 +1,5 @@
 use embassy_stm32 as hal;
 
-use crate::led::UserLed;
-
 // - types --------------------------------------------------------------------
 
 pub type SeedPin0 = hal::peripherals::PB12; // PIN_01, USB OTG ID, I2C3 SCL
