@@ -69,7 +69,7 @@ pub struct FMCPins {
 // - Pins ---------------------------------------------------------------------
 
 #[allow(non_snake_case)]
-pub struct Pins<'a> {
+pub struct DaisyBoard<'a> {
     // https://github.com/electro-smith/DaisyWiki/wiki/2.-Daisy-Seed-Pinout
     pub SEED_PIN_0: SeedPin0,
     pub SEED_PIN_1: SeedPin1,
