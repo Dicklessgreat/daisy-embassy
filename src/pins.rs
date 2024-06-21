@@ -1,5 +1,7 @@
 use embassy_stm32 as hal;
 
+use crate::led::UserLed;
+
 // - types --------------------------------------------------------------------
 
 pub type SeedPin0 = hal::peripherals::PB12; // PIN_01, USB OTG ID, I2C3 SCL
@@ -67,7 +69,7 @@ pub struct FMCPins {
 // - Pins ---------------------------------------------------------------------
 
 #[allow(non_snake_case)]
-pub struct Pins {
+pub struct Pins<'a> {
     // https://github.com/electro-smith/DaisyWiki/wiki/2.-Daisy-Seed-Pinout
     pub SEED_PIN_0: SeedPin0,
     pub SEED_PIN_1: SeedPin1,
@@ -102,7 +104,7 @@ pub struct Pins {
     pub SEED_PIN_30: SeedPin30,
 
     // board peripherals
-    pub LED_USER: LedUserPin,
+    pub LED_USER: UserLed<'a>,
     pub WM8731: WM8731Pins,
     pub FMC: FMCPins,
     pub SDRAM: (), // TODO
