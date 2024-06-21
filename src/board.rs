@@ -1,3 +1,4 @@
+use crate::led::UserLed;
 use crate::pins::*;
 use embassy_stm32 as hal;
 
