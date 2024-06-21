@@ -6,4 +6,4 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "stm32h750vb", "time-driver-tim2", "exti", "memory-x", "unstable-pac", "chrono"] }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "stm32h750ib", "time-driver-tim2", "exti", "memory-x", "unstable-pac", "chrono"] }
