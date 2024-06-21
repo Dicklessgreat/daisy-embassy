@@ -1,5 +1,7 @@
 use embassy_stm32 as hal;
 use hal::{dma::Transfer, peripherals, time::Hertz};
+
+use crate::pins::WM8731Pins;
 // - global constants ---------------------------------------------------------
 
 const FS: Hertz = Hertz(48000);
@@ -20,20 +22,6 @@ static mut RX_BUFFER: [u32; DMA_BUFFER_LENGTH] = [0; DMA_BUFFER_LENGTH];
 pub type Frame = (f32, f32);
 pub type Block = [Frame; BLOCK_LENGTH];
 
-pub type Sai1Pins = (
-    // gpio::gpiob::PB11<gpio::Output<gpio::PushPull>>,  // PDN
-    peripherals::PE2, // MCLK_A
-    peripherals::PE5, // SCK_A
-    peripherals::PE4, // FS_A
-    peripherals::PE6, // SD_A
-    peripherals::PE3, // SD_B
-);
-
-pub type I2C2Pins = (
-    peripherals::PH4,  // SCL
-    peripherals::PB11, // SDA
-);
-
 pub struct Interface<'a> {
     pub fs: Hertz,
 
@@ -47,21 +35,40 @@ pub struct Interface<'a> {
 
 impl<'a> Interface<'a> {
     pub fn init(
-        clocks: &hal::rcc::CoreClocks,
-        sai1_rec: hal::rcc::rec::Sai1, // reset and enable control
-        sai1_pins: Sai1Pins,
-        i2c2_rec: hal::rcc::rec::I2c2, // reset and enable control
-        i2c2_pins: I2C2Pins,
-        dma1_rec: hal::rcc::rec::Dma1,
-    ) -> Result<Interface<'a>, Error> {
+        // clocks: &hal::rcc::CoreClocks,
+        wm8731: WM8731Pins,
+        sai1: hal::peripherals::SAI1, // reset and enable control
+        i2c2: hal::peripherals::I2C2, // reset and enable control
+        dma1: hal::peripherals::DMA1,
+        dma1_ch1: hal::peripherals::DMA1_CH1,
+        dma1_ch4: hal::peripherals::DMA1_CH4,
+        dma1_ch5: hal::peripherals::DMA1_CH5,
+    ) -> Self {
         use hal::sai::{ClockStrobe, Config, DataSize};
         let mut sai_config = Config::new();
         sai_config.data_size = DataSize::Data24;
         sai_config.clock_strobe = ClockStrobe::Falling;
-        hal::sai::Sai::new_asynchronous(peri, sck, sd, fs, dma, dma_buf, sai_config);
+        hal::sai::Sai::new_asynchronous(
+            sai1,
+            wm8731.SCK_A,
+            wm8731.SDA,
+            fs,
+            dma1_ch1,
+            dma_buf,
+            sai_config,
+        );
 
         let i2c_config = hal::i2c::Config::default();
-        let i2c2 = embassy_stm32::i2c::I2c::new(peri, i2c2_pins.0, i2c2_pins.1, irq, tx_dma, rx_dma, I2C_FS, i2c_config)
+        let i2c2 = embassy_stm32::i2c::I2c::new(
+            i2c2,
+            wm8731.SCL,
+            wm8731.SDA,
+            (),
+            dma1_ch4,
+            dma1_ch5,
+            I2C_FS,
+            i2c_config,
+        );
         // - configure dma1 ---------------------------------------------------
 
         let dma1_streams =
