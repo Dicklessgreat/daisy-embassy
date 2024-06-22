@@ -61,7 +61,6 @@ impl<'a> DaisyBoard<'a> {
                 DN: p.PA11,
                 DP: p.PA12,
             },
-            Irqs,
         );
         Self {
             SEED_PIN_0: p.PB12,
