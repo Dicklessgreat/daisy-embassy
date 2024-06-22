@@ -1,5 +1,6 @@
 use embassy_stm32 as hal;
 use hal::{peripherals, time::Hertz};
+use static_cell::StaticCell;
 
 use crate::pins::WM8731Pins;
 // - global constants ---------------------------------------------------------
@@ -9,13 +10,6 @@ const I2C_FS: Hertz = Hertz(100_000);
 pub const BLOCK_LENGTH: usize = 32; // 32 samples
 pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2; //  2 channels
 pub const DMA_BUFFER_LENGTH: usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-blocks
-
-// - static data --------------------------------------------------------------
-
-#[link_section = ".sram1_bss"]
-static mut TX_BUFFER: [u32; DMA_BUFFER_LENGTH] = [0; DMA_BUFFER_LENGTH];
-#[link_section = ".sram1_bss"]
-static mut RX_BUFFER: [u32; DMA_BUFFER_LENGTH] = [0; DMA_BUFFER_LENGTH];
 
 // - types --------------------------------------------------------------------
 
@@ -60,25 +54,29 @@ impl<'a> Interface<'a> {
         sai_tx_config.stereo_mono = StereoMono::Stereo;
         sai_tx_config.data_size = DataSize::Data24;
         sai_tx_config.clock_strobe = ClockStrobe::Falling;
+        static TX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
+        let tx_buffer = TX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
         let sai_tx = hal::sai::Sai::new_asynchronous(
             sub_block_transmitter,
             wm8731.SCK_A,
             wm8731.SD_B,
             wm8731.FS_A,
             dma1_ch1,
-            unsafe { &mut TX_BUFFER },
+            tx_buffer,
             sai_tx_config,
         );
 
         let mut sai_rx_config = Config::default();
         sai_rx_config.tx_rx = TxRx::Receiver;
+        static RX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
+        let rx_buffer = RX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
         let sai_rx = hal::sai::Sai::new_asynchronous(
             sub_block_receiver,
             wm8731.SCK_A,
             wm8731.SD_A,
             wm8731.FS_A,
             dma1_ch2,
-            unsafe { &mut RX_BUFFER },
+            rx_buffer,
             sai_rx_config,
         );
 
