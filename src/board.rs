@@ -2,7 +2,6 @@ use crate::pins::*;
 use crate::{led::UserLed, usb::DaisyUsb};
 use embassy_stm32 as hal;
 use hal::{bind_interrupts, peripherals, usb};
-use static_cell::StaticCell;
 
 bind_interrupts!(pub struct Irqs {
     OTG_FS => usb::InterruptHandler<peripherals::USB_OTG_FS>;
