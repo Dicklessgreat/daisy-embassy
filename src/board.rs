@@ -1,6 +1,11 @@
-use crate::led::UserLed;
 use crate::pins::*;
+use crate::{led::UserLed, usb::DaisyUsb};
 use embassy_stm32 as hal;
+use hal::{bind_interrupts, peripherals, usb};
+
+bind_interrupts!(pub struct Irqs {
+    OTG_FS => usb::InterruptHandler<peripherals::USB_OTG_FS>;
+});
 
 #[allow(non_snake_case)]
 pub struct DaisyBoard<'a> {
@@ -42,12 +47,22 @@ pub struct DaisyBoard<'a> {
     pub WM8731: WM8731Pins,
     pub FMC: FMCPins,
     pub SDRAM: (), // TODO
-    pub USB2: USB2Pins,
+    pub USB2: DaisyUsb<'a>,
 }
 
 impl<'a> DaisyBoard<'a> {
     pub fn new(config: embassy_stm32::Config) -> Self {
         let p = embassy_stm32::init(config);
+        let mut ep_out_buffer = [0u8; 256];
+        let usb_driver = crate::usb::init(
+            p.USB_OTG_FS,
+            USB2Pins {
+                DN: p.PA11,
+                DP: p.PA12,
+            },
+            &mut ep_out_buffer,
+            Irqs,
+        );
         Self {
             SEED_PIN_0: p.PB12,
             SEED_PIN_1: p.PC11,
@@ -99,10 +114,7 @@ impl<'a> DaisyBoard<'a> {
                 CS: p.PG6,
             },
             SDRAM: (),
-            USB2: USB2Pins {
-                DN: p.PA11, // USB2 D-
-                DP: p.PA12, // USB2 D+
-            },
+            USB2: usb_driver,
         }
     }
 }
