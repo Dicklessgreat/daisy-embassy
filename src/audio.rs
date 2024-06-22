@@ -41,21 +41,46 @@ impl<'a> Interface<'a> {
         i2c2: hal::peripherals::I2C2, // reset and enable control
         dma1: hal::peripherals::DMA1,
         dma1_ch1: hal::peripherals::DMA1_CH1,
+        dma1_ch2: hal::peripherals::DMA1_CH2,
         dma1_ch4: hal::peripherals::DMA1_CH4,
         dma1_ch5: hal::peripherals::DMA1_CH5,
     ) -> Self {
-        use hal::sai::{ClockStrobe, Config, DataSize};
-        let mut sai_config = Config::new();
-        sai_config.data_size = DataSize::Data24;
-        sai_config.clock_strobe = ClockStrobe::Falling;
-        hal::sai::Sai::new_asynchronous(
-            sai1,
+        use hal::sai::{
+            ClockStrobe, Config, DataSize, FifoThreshold, MasterClockDivider, Mode, StereoMono,
+            TxRx,
+        };
+        let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(sai1);
+
+        let mut sai_tx_config = Config::default();
+        sai_tx_config.mode = Mode::Master;
+        sai_tx_config.tx_rx = TxRx::Transmitter;
+        sai_tx_config.mute_detection_counter = hal::dma::word::U5(0);
+        sai_tx_config.master_clock_divider = MasterClockDivider::Div12;
+        sai_tx_config.fifo_threshold = FifoThreshold::Empty;
+        sai_tx_config.sync_output = true;
+        sai_tx_config.stereo_mono = StereoMono::Stereo;
+        sai_tx_config.data_size = DataSize::Data24;
+        sai_tx_config.clock_strobe = ClockStrobe::Falling;
+        let sai_tx = hal::sai::Sai::new_asynchronous(
+            sub_block_transmitter,
             wm8731.SCK_A,
-            wm8731.SDA,
-            fs,
+            wm8731.SD_B,
+            wm8731.FS_A,
             dma1_ch1,
-            dma_buf,
-            sai_config,
+            unsafe { &mut TX_BUFFER },
+            sai_tx_config,
+        );
+
+        let mut sai_rx_config = Config::default();
+        sai_rx_config.tx_rx = TxRx::Receiver;
+        let sai_rx = hal::sai::Sai::new_asynchronous(
+            sub_block_receiver,
+            wm8731.SCK_A,
+            wm8731.SD_A,
+            wm8731.FS_A,
+            dma1_ch2,
+            unsafe { &mut RX_BUFFER },
+            sai_rx_config,
         );
 
         let i2c_config = hal::i2c::Config::default();
