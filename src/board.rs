@@ -1,10 +1,12 @@
 use crate::pins::*;
 use crate::{led::UserLed, usb::DaisyUsb};
 use embassy_stm32 as hal;
-use hal::{bind_interrupts, peripherals, usb};
+use hal::{bind_interrupts, i2c, peripherals, usb};
 
 bind_interrupts!(pub struct Irqs {
     OTG_FS => usb::InterruptHandler<peripherals::USB_OTG_FS>;
+    I2C2_EV => i2c::EventInterruptHandler<peripherals::I2C2>;
+    I2C2_ER => i2c::ErrorInterruptHandler<peripherals::I2C2>;
 });
 
 #[allow(non_snake_case)]

@@ -2,7 +2,7 @@ use embassy_stm32 as hal;
 use hal::{peripherals, time::Hertz};
 use static_cell::StaticCell;
 
-use crate::pins::WM8731Pins;
+use crate::{board::Irqs, pins::WM8731Pins};
 // - global constants ---------------------------------------------------------
 
 const FS: Hertz = Hertz(48000);
@@ -82,14 +82,7 @@ impl<'a> Interface<'a> {
 
         let i2c_config = hal::i2c::Config::default();
         let i2c = embassy_stm32::i2c::I2c::new(
-            i2c2,
-            wm8731.SCL,
-            wm8731.SDA,
-            (),
-            dma1_ch4,
-            dma1_ch5,
-            I2C_FS,
-            i2c_config,
+            i2c2, wm8731.SCL, wm8731.SDA, Irqs, dma1_ch4, dma1_ch5, I2C_FS, i2c_config,
         );
 
         Self {
