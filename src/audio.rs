@@ -1,7 +1,10 @@
 use embassy_stm32 as hal;
 use hal::{
     peripherals,
-    sai::{self, Sai},
+    sai::{
+        self, ClockStrobe, Config, DataSize, FifoThreshold, MasterClockDivider, Mode, Sai,
+        StereoMono, TxRx,
+    },
     time::Hertz,
 };
 use static_cell::StaticCell;
@@ -39,10 +42,6 @@ pub struct Peripherals {
 
 impl<'a> Interface<'a> {
     pub fn new(wm8731: WM8731Pins, p: Peripherals) -> Self {
-        use hal::sai::{
-            ClockStrobe, Config, DataSize, FifoThreshold, MasterClockDivider, Mode, StereoMono,
-            TxRx,
-        };
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
         let mut sai_tx_conf = Config::default();
