@@ -63,7 +63,7 @@ impl<'a> DaisyBoard<'a> {
                 DP: p.PA12,
             },
         );
-        let interface = Interface::init(
+        let interface = Interface::new(
             WM8731Pins {
                 SCL: p.PH4,
                 SDA: p.PB11,

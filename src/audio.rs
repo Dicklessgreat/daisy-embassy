@@ -38,7 +38,7 @@ pub struct Peripherals {
 }
 
 impl<'a> Interface<'a> {
-    pub fn init(wm8731: WM8731Pins, p: Peripherals) -> Self {
+    pub fn new(wm8731: WM8731Pins, p: Peripherals) -> Self {
         use hal::sai::{
             ClockStrobe, Config, DataSize, FifoThreshold, MasterClockDivider, Mode, StereoMono,
             TxRx,
