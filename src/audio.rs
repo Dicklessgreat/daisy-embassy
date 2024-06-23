@@ -18,9 +18,6 @@ pub type Block = [Frame; BLOCK_LENGTH];
 
 pub struct Interface<'a> {
     pub fs: Hertz,
-
-    function_ptr: Option<fn(f32, &mut Block)>,
-
     sai_tx: hal::sai::Sai<'a, peripherals::SAI1, u32>,
     sai_rx: hal::sai::Sai<'a, peripherals::SAI1, u32>,
     i2c: hal::i2c::I2c<'a, hal::mode::Async>,
@@ -87,7 +84,6 @@ impl<'a> Interface<'a> {
 
         Self {
             fs: FS,
-            function_ptr: None,
             sai_rx,
             sai_tx,
             i2c,
