@@ -28,23 +28,22 @@ pub struct Interface<'a> {
     i2c: hal::i2c::I2c<'a, hal::mode::Async>,
 }
 
+pub struct Peripherals {
+    sai1: hal::peripherals::SAI1,
+    i2c2: hal::peripherals::I2C2,
+    dma1_ch1: hal::peripherals::DMA1_CH1,
+    dma1_ch2: hal::peripherals::DMA1_CH2,
+    dma1_ch4: hal::peripherals::DMA1_CH4,
+    dma1_ch5: hal::peripherals::DMA1_CH5,
+}
+
 impl<'a> Interface<'a> {
-    pub fn init(
-        // clocks: &hal::rcc::CoreClocks,
-        wm8731: WM8731Pins,
-        sai1: hal::peripherals::SAI1, // reset and enable control
-        i2c2: hal::peripherals::I2C2, // reset and enable control
-        dma1: hal::peripherals::DMA1,
-        dma1_ch1: hal::peripherals::DMA1_CH1,
-        dma1_ch2: hal::peripherals::DMA1_CH2,
-        dma1_ch4: hal::peripherals::DMA1_CH4,
-        dma1_ch5: hal::peripherals::DMA1_CH5,
-    ) -> Self {
+    pub fn init(wm8731: WM8731Pins, p: Peripherals) -> Self {
         use hal::sai::{
             ClockStrobe, Config, DataSize, FifoThreshold, MasterClockDivider, Mode, StereoMono,
             TxRx,
         };
-        let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(sai1);
+        let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
         let mut sai_tx_conf = Config::default();
         sai_tx_conf.mode = Mode::Slave;
@@ -61,7 +60,7 @@ impl<'a> Interface<'a> {
         let sai_tx = hal::sai::Sai::new_synchronous(
             sub_block_transmitter,
             wm8731.SD_B,
-            dma1_ch1,
+            p.dma1_ch1,
             tx_buffer,
             sai_tx_conf,
         );
@@ -77,14 +76,14 @@ impl<'a> Interface<'a> {
             wm8731.SD_A,
             wm8731.FS_A,
             wm8731.MCLK_A,
-            dma1_ch2,
+            p.dma1_ch2,
             rx_buffer,
             sai_rx_conf,
         );
 
         let i2c_config = hal::i2c::Config::default();
         let i2c = embassy_stm32::i2c::I2c::new(
-            i2c2, wm8731.SCL, wm8731.SDA, Irqs, dma1_ch4, dma1_ch5, I2C_FS, i2c_config,
+            p.i2c2, wm8731.SCL, wm8731.SDA, Irqs, p.dma1_ch4, p.dma1_ch5, I2C_FS, i2c_config,
         );
 
         Self {
