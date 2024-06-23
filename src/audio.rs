@@ -204,7 +204,7 @@ const REGISTER_CONFIG: &[(Register, u8)] = &[
 ];
 
 const fn mclk_div_from_u8(v: u8) -> MasterClockDivider {
-    match mclk_div {
+    match v {
         1 => MasterClockDivider::Div1,
         2 => MasterClockDivider::Div2,
         3 => MasterClockDivider::Div3,
