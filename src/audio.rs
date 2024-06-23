@@ -1,10 +1,7 @@
 use embassy_stm32 as hal;
 use hal::{
     peripherals,
-    sai::{
-        self, ClockStrobe, Config, DataSize, FifoThreshold, MasterClockDivider, Mode, Sai,
-        StereoMono, TxRx,
-    },
+    sai::{self, ClockStrobe, Config, DataSize, Mode, Sai, StereoMono, TxRx},
     time::Hertz,
 };
 use static_cell::StaticCell;
@@ -44,13 +41,10 @@ impl<'a> Interface<'a> {
     pub fn new(wm8731: WM8731Pins, p: Peripherals) -> Self {
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
+        // I have no idea how to set up SAI! WIP
         let mut sai_tx_conf = Config::default();
         sai_tx_conf.mode = Mode::Slave;
         sai_tx_conf.tx_rx = TxRx::Transmitter;
-        sai_tx_conf.mute_detection_counter = hal::dma::word::U5(0);
-        sai_tx_conf.master_clock_divider = MasterClockDivider::Div12;
-        sai_tx_conf.fifo_threshold = FifoThreshold::Empty;
-        sai_tx_conf.sync_output = true;
         sai_tx_conf.stereo_mono = StereoMono::Stereo;
         sai_tx_conf.data_size = DataSize::Data24;
         sai_tx_conf.clock_strobe = ClockStrobe::Falling;
@@ -64,6 +58,7 @@ impl<'a> Interface<'a> {
             sai_tx_conf,
         );
 
+        // I have no idea how to set up SAI! WIP
         let mut sai_rx_conf = Config::default();
         sai_rx_conf.tx_rx = TxRx::Receiver;
         sai_rx_conf.mode = Mode::Master;
