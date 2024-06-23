@@ -1,4 +1,5 @@
 use embassy_stm32 as hal;
+use embassy_time::Timer;
 use hal::{
     peripherals,
     sai::{self, ClockStrobe, Config, DataSize, Mode, Sai, StereoMono, TxRx},
@@ -88,6 +89,28 @@ impl<'a> Interface<'a> {
             i2c,
         }
     }
+    pub async fn start(&mut self) {
+        // - set up WM8731 ------------------------------------------------------
+        // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
+        let codec_i2c_address: u8 = 0x1a; // or 0x1b if CSB is high
+
+        // Go through configuration setup
+        for (register, value) in REGISTER_CONFIG {
+            let register = *register as u8;
+            let value = *value;
+            let byte1: u8 = ((register << 1) & 0b1111_1110) | ((value >> 7) & 0b0000_0001u8);
+            let byte2: u8 = value;
+            let bytes = [byte1, byte2];
+
+            self.i2c.write(codec_i2c_address, &bytes).await.unwrap();
+
+            // wait ~10us
+            Timer::after_micros(10).await;
+        }
+
+        // - start audio ------------------------------------------------------
+        todo!()
+    }
     pub fn rx_config(&self) -> &sai::Config {
         &self.sai_rx_conf
     }
@@ -95,3 +118,42 @@ impl<'a> Interface<'a> {
         &self.sai_tx_conf
     }
 }
+
+//from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L381
+#[allow(non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+#[repr(u8)]
+enum Register {
+    LINVOL = 0x00,
+    RINVOL = 0x01,
+    LOUT1V = 0x02,
+    ROUT1V = 0x03,
+    APANA = 0x04,
+    APDIGI = 0x05, // 0000_0101
+    PWR = 0x06,
+    IFACE = 0x07,  // 0000_0111
+    SRATE = 0x08,  // 0000_1000
+    ACTIVE = 0x09, // 0000_1001
+    RESET = 0x0F,
+}
+const REGISTER_CONFIG: &[(Register, u8)] = &[
+    // reset Codec
+    (Register::RESET, 0x00),
+    // set line inputs 0dB
+    (Register::LINVOL, 0x17),
+    (Register::RINVOL, 0x17),
+    // set headphone to mute
+    (Register::LOUT1V, 0x00),
+    (Register::ROUT1V, 0x00),
+    // set analog and digital routing
+    (Register::APANA, 0x12),
+    (Register::APDIGI, 0x01),
+    // configure power management
+    (Register::PWR, 0x42),
+    // configure digital format
+    (Register::IFACE, 0x0A),
+    // set samplerate
+    (Register::SRATE, 0x00),
+    (Register::ACTIVE, 0x00),
+    (Register::ACTIVE, 0x01),
+];

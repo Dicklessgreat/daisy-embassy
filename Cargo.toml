@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "stm32h750ib", "time-driver-tim2", "exti", "memory-x", "unstable-pac", "chrono"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
 static_cell = "2.1.0"
