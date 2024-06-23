@@ -2,7 +2,10 @@ use embassy_stm32 as hal;
 use embassy_time::Timer;
 use hal::{
     peripherals,
-    sai::{self, ClockStrobe, Config, DataSize, Mode, Sai, StereoMono, TxRx},
+    sai::{
+        self, ClockStrobe, ComplementFormat, Config, DataSize, FrameSyncPolarity, Mode, Sai,
+        StereoMono, TxRx,
+    },
     time::Hertz,
 };
 use static_cell::StaticCell;
@@ -49,6 +52,9 @@ impl<'a> Interface<'a> {
         sai_tx_conf.stereo_mono = StereoMono::Stereo;
         sai_tx_conf.data_size = DataSize::Data24;
         sai_tx_conf.clock_strobe = ClockStrobe::Falling;
+        sai_tx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+        // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
+        // sai_tx_conf.complement_format = ComplementFormat::OnesComplement;
         static TX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
         let tx_buffer = TX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
         let sai_tx = hal::sai::Sai::new_synchronous(
@@ -63,6 +69,12 @@ impl<'a> Interface<'a> {
         let mut sai_rx_conf = Config::default();
         sai_rx_conf.tx_rx = TxRx::Receiver;
         sai_rx_conf.mode = Mode::Master;
+        sai_rx_conf.stereo_mono = StereoMono::Stereo;
+        sai_rx_conf.data_size = DataSize::Data24;
+        sai_rx_conf.clock_strobe = ClockStrobe::Rising;
+        sai_rx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+        // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
+        // sai_rx_conf.complement_format = ComplementFormat::OnesComplement;
         static RX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
         let rx_buffer = RX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
         let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
