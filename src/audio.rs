@@ -71,11 +71,12 @@ impl<'a> Interface<'a> {
         sai_rx_config.mode = Mode::Master;
         static RX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
         let rx_buffer = RX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
-        let sai_rx = hal::sai::Sai::new_asynchronous(
+        let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
             sub_block_receiver,
             wm8731.SCK_A,
             wm8731.SD_A,
             wm8731.FS_A,
+            wm8731.MCLK_A,
             dma1_ch2,
             rx_buffer,
             sai_rx_config,
