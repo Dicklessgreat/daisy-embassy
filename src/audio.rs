@@ -3,8 +3,8 @@ use embassy_time::Timer;
 use hal::{
     peripherals,
     sai::{
-        self, ClockStrobe, ComplementFormat, Config, DataSize, FrameSyncPolarity, Mode, Sai,
-        StereoMono, TxRx,
+        self, ClockStrobe, ComplementFormat, Config, DataSize, FrameSyncPolarity,
+        MasterClockDivider, Mode, Sai, StereoMono, TxRx,
     },
     time::Hertz,
 };
@@ -41,8 +41,39 @@ pub struct Peripherals {
     pub dma1_ch5: hal::peripherals::DMA1_CH5,
 }
 
+pub enum Fs {
+    Fs32000,
+    Fs44100,
+    Fs48000,
+    Fs64000,
+    Fs88200,
+    Fs96000,
+    Fs128000,
+    Fs176000,
+    Fs192000,
+}
+const KERNEL_CLOCK: u32 = todo!();
+const CLOCK_RATIO: u32 = 256; //Not yet support oversampling.
+impl Fs {
+    fn into_clock_divider(self) -> MasterClockDivider {
+        let fs = match self {
+            Fs::Fs32000 => 32000,
+            Fs::Fs44100 => 44100,
+            Fs::Fs48000 => 48000,
+            Fs::Fs64000 => 64000,
+            Fs::Fs88200 => 88200,
+            Fs::Fs96000 => 96000,
+            Fs::Fs128000 => 128000,
+            Fs::Fs176000 => 176000,
+            Fs::Fs192000 => 192000,
+        };
+        let mclk_div = (KERNEL_CLOCK / fs * CLOCK_RATIO) as u8;
+        mclk_div_from_u8(mclk_div)
+    }
+}
+
 impl<'a> Interface<'a> {
-    pub fn new(wm8731: WM8731Pins, p: Peripherals) -> Self {
+    pub fn new(wm8731: WM8731Pins, p: Peripherals, tx_fs: Fs, rx_fs: Fs) -> Self {
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
         // I have no idea how to set up SAI! WIP
@@ -53,6 +84,7 @@ impl<'a> Interface<'a> {
         sai_tx_conf.data_size = DataSize::Data24;
         sai_tx_conf.clock_strobe = ClockStrobe::Falling;
         sai_tx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+        sai_tx_conf.master_clock_divider = tx_fs.into_clock_divider();
         // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
         // sai_tx_conf.complement_format = ComplementFormat::OnesComplement;
         static TX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
@@ -73,6 +105,7 @@ impl<'a> Interface<'a> {
         sai_rx_conf.data_size = DataSize::Data24;
         sai_rx_conf.clock_strobe = ClockStrobe::Rising;
         sai_rx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+        sai_rx_conf.master_clock_divider = rx_fs.into_clock_divider();
         // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
         // sai_rx_conf.complement_format = ComplementFormat::OnesComplement;
         static RX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
@@ -169,3 +202,72 @@ const REGISTER_CONFIG: &[(Register, u8)] = &[
     (Register::ACTIVE, 0x00),
     (Register::ACTIVE, 0x01),
 ];
+
+const fn mclk_div_from_u8(v: u8) -> MasterClockDivider {
+    match mclk_div {
+        1 => MasterClockDivider::Div1,
+        2 => MasterClockDivider::Div2,
+        3 => MasterClockDivider::Div3,
+        4 => MasterClockDivider::Div4,
+        5 => MasterClockDivider::Div5,
+        6 => MasterClockDivider::Div6,
+        7 => MasterClockDivider::Div7,
+        8 => MasterClockDivider::Div8,
+        9 => MasterClockDivider::Div9,
+        10 => MasterClockDivider::Div10,
+        11 => MasterClockDivider::Div11,
+        12 => MasterClockDivider::Div12,
+        13 => MasterClockDivider::Div13,
+        14 => MasterClockDivider::Div14,
+        15 => MasterClockDivider::Div15,
+        16 => MasterClockDivider::Div16,
+        17 => MasterClockDivider::Div17,
+        18 => MasterClockDivider::Div18,
+        19 => MasterClockDivider::Div19,
+        20 => MasterClockDivider::Div20,
+        21 => MasterClockDivider::Div21,
+        22 => MasterClockDivider::Div22,
+        23 => MasterClockDivider::Div23,
+        24 => MasterClockDivider::Div24,
+        25 => MasterClockDivider::Div25,
+        26 => MasterClockDivider::Div26,
+        27 => MasterClockDivider::Div27,
+        28 => MasterClockDivider::Div28,
+        29 => MasterClockDivider::Div29,
+        30 => MasterClockDivider::Div30,
+        31 => MasterClockDivider::Div31,
+        32 => MasterClockDivider::Div32,
+        33 => MasterClockDivider::Div33,
+        34 => MasterClockDivider::Div34,
+        35 => MasterClockDivider::Div35,
+        36 => MasterClockDivider::Div36,
+        37 => MasterClockDivider::Div37,
+        38 => MasterClockDivider::Div38,
+        39 => MasterClockDivider::Div39,
+        40 => MasterClockDivider::Div40,
+        41 => MasterClockDivider::Div41,
+        42 => MasterClockDivider::Div42,
+        43 => MasterClockDivider::Div43,
+        44 => MasterClockDivider::Div44,
+        45 => MasterClockDivider::Div45,
+        46 => MasterClockDivider::Div46,
+        47 => MasterClockDivider::Div47,
+        48 => MasterClockDivider::Div48,
+        49 => MasterClockDivider::Div49,
+        50 => MasterClockDivider::Div50,
+        51 => MasterClockDivider::Div51,
+        52 => MasterClockDivider::Div52,
+        53 => MasterClockDivider::Div53,
+        54 => MasterClockDivider::Div54,
+        55 => MasterClockDivider::Div55,
+        56 => MasterClockDivider::Div56,
+        57 => MasterClockDivider::Div57,
+        58 => MasterClockDivider::Div58,
+        59 => MasterClockDivider::Div59,
+        60 => MasterClockDivider::Div60,
+        61 => MasterClockDivider::Div61,
+        62 => MasterClockDivider::Div62,
+        63 => MasterClockDivider::Div63,
+        _ => panic!(),
+    }
+}
