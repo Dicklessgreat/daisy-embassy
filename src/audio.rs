@@ -45,7 +45,7 @@ impl<'a> Interface<'a> {
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(sai1);
 
         let mut sai_tx_config = Config::default();
-        sai_tx_config.mode = Mode::Master;
+        sai_tx_config.mode = Mode::Slave;
         sai_tx_config.tx_rx = TxRx::Transmitter;
         sai_tx_config.mute_detection_counter = hal::dma::word::U5(0);
         sai_tx_config.master_clock_divider = MasterClockDivider::Div12;
@@ -68,6 +68,7 @@ impl<'a> Interface<'a> {
 
         let mut sai_rx_config = Config::default();
         sai_rx_config.tx_rx = TxRx::Receiver;
+        sai_rx_config.mode = Mode::Master;
         static RX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
         let rx_buffer = RX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
         let sai_rx = hal::sai::Sai::new_asynchronous(
