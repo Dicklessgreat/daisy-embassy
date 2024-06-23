@@ -1,6 +1,8 @@
+use embassy_executor::{InterruptExecutor, SpawnToken};
 use embassy_stm32 as hal;
 use embassy_time::Timer;
 use hal::{
+    interrupt::{self, InterruptExt},
     peripherals,
     sai::{
         self, ClockStrobe, ComplementFormat, Config, DataSize, FrameSyncPolarity,
@@ -23,6 +25,8 @@ pub const DMA_BUFFER_LENGTH: usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-bloc
 
 pub type Frame = (f32, f32);
 pub type Block = [Frame; BLOCK_LENGTH];
+
+static EXECUTOR_DMA: InterruptExecutor = InterruptExecutor::new();
 
 pub struct Interface<'a> {
     sai_tx_conf: sai::Config,
@@ -134,7 +138,7 @@ impl<'a> Interface<'a> {
             i2c,
         }
     }
-    pub async fn start(&mut self) {
+    pub async fn start<S: Send>(&mut self, audio_callback: SpawnToken<S>) {
         // - set up WM8731 ------------------------------------------------------
         // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
         let codec_i2c_address: u8 = 0x1a; // or 0x1b if CSB is high
@@ -154,7 +158,16 @@ impl<'a> Interface<'a> {
         }
 
         // - start audio ------------------------------------------------------
-        todo!()
+
+        //start sai_rx dma interrupt
+        interrupt::DMA1_STREAM2.set_priority(interrupt::Priority::P2);
+        let spawner = EXECUTOR_DMA.start(interrupt::DMA1_STREAM2);
+        spawner.spawn(audio_callback).unwrap();
+
+        self.sai_tx.start();
+        self.sai_rx.start();
+        // in daisy_bsp/src/audio.rs...Interface::start(), it waits untill sai1's fifo starts to receive data.
+        // I don't know how to get fifo state in embassy.
     }
     pub fn rx_config(&self) -> &sai::Config {
         &self.sai_rx_conf
