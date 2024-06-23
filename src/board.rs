@@ -54,7 +54,7 @@ pub struct DaisyBoard<'a> {
 }
 
 impl<'a> DaisyBoard<'a> {
-    pub fn new(config: embassy_stm32::Config) -> Self {
+    pub fn new(config: embassy_stm32::Config, tx_fs: audio::Fs, rx_fs: audio::Fs) -> Self {
         let p = embassy_stm32::init(config);
         let usb_driver = crate::usb::init(
             p.USB_OTG_FS,
@@ -81,6 +81,8 @@ impl<'a> DaisyBoard<'a> {
                 dma1_ch4: p.DMA1_CH4,
                 dma1_ch5: p.DMA1_CH5,
             },
+            tx_fs,
+            rx_fs,
         );
         Self {
             SEED_PIN_0: p.PB12,
