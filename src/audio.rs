@@ -56,11 +56,9 @@ impl<'a> Interface<'a> {
         sai_tx_config.clock_strobe = ClockStrobe::Falling;
         static TX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
         let tx_buffer = TX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
-        let sai_tx = hal::sai::Sai::new_asynchronous(
+        let sai_tx = hal::sai::Sai::new_synchronous(
             sub_block_transmitter,
-            wm8731.SCK_A,
             wm8731.SD_B,
-            wm8731.FS_A,
             dma1_ch1,
             tx_buffer,
             sai_tx_config,
