@@ -88,4 +88,10 @@ impl<'a> Interface<'a> {
             i2c,
         }
     }
+    pub fn rx_config(&self) -> &sai::Config {
+        &self.sai_rx_conf
+    }
+    pub fn tx_config(&self) -> &sai::Config {
+        &self.sai_tx_conf
+    }
 }
