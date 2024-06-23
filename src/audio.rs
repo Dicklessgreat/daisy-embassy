@@ -29,12 +29,12 @@ pub struct Interface<'a> {
 }
 
 pub struct Peripherals {
-    sai1: hal::peripherals::SAI1,
-    i2c2: hal::peripherals::I2C2,
-    dma1_ch1: hal::peripherals::DMA1_CH1,
-    dma1_ch2: hal::peripherals::DMA1_CH2,
-    dma1_ch4: hal::peripherals::DMA1_CH4,
-    dma1_ch5: hal::peripherals::DMA1_CH5,
+    pub sai1: hal::peripherals::SAI1,
+    pub i2c2: hal::peripherals::I2C2,
+    pub dma1_ch1: hal::peripherals::DMA1_CH1,
+    pub dma1_ch2: hal::peripherals::DMA1_CH2,
+    pub dma1_ch4: hal::peripherals::DMA1_CH4,
+    pub dma1_ch5: hal::peripherals::DMA1_CH5,
 }
 
 impl<'a> Interface<'a> {

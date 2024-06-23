@@ -1,3 +1,4 @@
+use crate::audio::{self, Interface};
 use crate::pins::*;
 use crate::{led::UserLed, usb::DaisyUsb};
 use embassy_stm32 as hal;
@@ -46,7 +47,7 @@ pub struct DaisyBoard<'a> {
 
     // board peripherals
     pub LED_USER: UserLed<'a>,
-    pub WM8731: WM8731Pins,
+    pub interface: Interface<'a>,
     pub FMC: FMCPins,
     pub SDRAM: (), // TODO
     pub USB2: DaisyUsb,
@@ -60,6 +61,25 @@ impl<'a> DaisyBoard<'a> {
             USB2Pins {
                 DN: p.PA11,
                 DP: p.PA12,
+            },
+        );
+        let interface = Interface::init(
+            WM8731Pins {
+                SCL: p.PH4,
+                SDA: p.PB11,
+                MCLK_A: p.PE2,
+                SCK_A: p.PE5,
+                FS_A: p.PE4,
+                SD_A: p.PE6,
+                SD_B: p.PE3,
+            },
+            audio::Peripherals {
+                sai1: p.SAI1,
+                i2c2: p.I2C2,
+                dma1_ch1: p.DMA1_CH1,
+                dma1_ch2: p.DMA1_CH2,
+                dma1_ch4: p.DMA1_CH4,
+                dma1_ch5: p.DMA1_CH5,
             },
         );
         Self {
@@ -95,15 +115,7 @@ impl<'a> DaisyBoard<'a> {
             SEED_PIN_29: p.PB14,
             SEED_PIN_30: p.PB15,
             LED_USER: UserLed::new(p.PC7),
-            WM8731: WM8731Pins {
-                SCL: p.PH4,
-                SDA: p.PB11,
-                MCLK_A: p.PE2,
-                SCK_A: p.PE5,
-                FS_A: p.PE4,
-                SD_A: p.PE6,
-                SD_B: p.PE3,
-            },
+            interface,
             FMC: FMCPins {
                 IO0: p.PF8,
                 IO1: p.PF9,
