@@ -56,7 +56,6 @@ pub enum Fs {
     Fs176000,
     Fs192000,
 }
-const KERNEL_CLOCK: u32 = todo!();
 const CLOCK_RATIO: u32 = 256; //Not yet support oversampling.
 impl Fs {
     fn into_clock_divider(self) -> MasterClockDivider {
@@ -71,7 +70,8 @@ impl Fs {
             Fs::Fs176000 => 176000,
             Fs::Fs192000 => 192000,
         };
-        let mclk_div = (KERNEL_CLOCK / fs * CLOCK_RATIO) as u8;
+        let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
+        let mclk_div = (kernel_clock / fs * CLOCK_RATIO) as u8;
         mclk_div_from_u8(mclk_div)
     }
 }
@@ -138,7 +138,7 @@ impl<'a> Interface<'a> {
             i2c,
         }
     }
-    pub async fn start<S: Send>(&mut self, audio_callback: SpawnToken<S>) {
+    pub async fn start<S: Send>(&mut self, audio_callback: SpawnToken<S>) -> ! {
         // - set up WM8731 ------------------------------------------------------
         // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
         let codec_i2c_address: u8 = 0x1a; // or 0x1b if CSB is high
@@ -168,6 +168,11 @@ impl<'a> Interface<'a> {
         self.sai_rx.start();
         // in daisy_bsp/src/audio.rs...Interface::start(), it waits untill sai1's fifo starts to receive data.
         // I don't know how to get fifo state in embassy.
+
+        loop {
+            self.sai_rx.read(data);
+            self.sai_tx.flush();
+        }
     }
     pub fn rx_config(&self) -> &sai::Config {
         &self.sai_rx_conf
