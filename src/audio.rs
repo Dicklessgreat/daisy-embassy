@@ -17,7 +17,6 @@ use static_cell::StaticCell;
 use crate::{board::Irqs, pins::WM8731Pins};
 // - global constants ---------------------------------------------------------
 
-// const FS: Hertz = Hertz(48000);
 const I2C_FS: Hertz = Hertz(100_000);
 pub const BLOCK_LENGTH: usize = 32; // 32 samples
 pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2; //  2 channels
@@ -25,7 +24,7 @@ pub const DMA_BUFFER_LENGTH: usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-bloc
 
 // - types --------------------------------------------------------------------
 
-pub type InterleavedBlock = [u32; BLOCK_LENGTH * 2];
+pub type InterleavedBlock = [u32; HALF_DMA_BUFFER_LENGTH];
 
 pub struct Interface<'a> {
     sai_tx_conf: sai::Config,
