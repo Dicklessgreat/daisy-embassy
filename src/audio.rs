@@ -1,8 +1,10 @@
-use embassy_executor::{InterruptExecutor, SpawnToken};
 use embassy_stm32 as hal;
+use embassy_sync::{
+    blocking_mutex::raw::NoopRawMutex,
+    zerocopy_channel::{Receiver, Sender},
+};
 use embassy_time::Timer;
 use hal::{
-    interrupt::{self, InterruptExt},
     peripherals,
     sai::{
         self, ClockStrobe, ComplementFormat, Config, DataSize, FrameSyncPolarity,
@@ -23,10 +25,7 @@ pub const DMA_BUFFER_LENGTH: usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-bloc
 
 // - types --------------------------------------------------------------------
 
-pub type Frame = (f32, f32);
-pub type Block = [Frame; BLOCK_LENGTH];
-
-static EXECUTOR_DMA: InterruptExecutor = InterruptExecutor::new();
+pub type InterleavedBlock = [u32; BLOCK_LENGTH * 2];
 
 pub struct Interface<'a> {
     sai_tx_conf: sai::Config,
@@ -43,6 +42,11 @@ pub struct Peripherals {
     pub dma1_ch2: hal::peripherals::DMA1_CH2,
     pub dma1_ch4: hal::peripherals::DMA1_CH4,
     pub dma1_ch5: hal::peripherals::DMA1_CH5,
+}
+
+pub struct Start {
+    pub if_to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
+    pub client_to_if: Receiver<'static, NoopRawMutex, InterleavedBlock>,
 }
 
 pub enum Fs {
@@ -138,7 +142,7 @@ impl<'a> Interface<'a> {
             i2c,
         }
     }
-    pub async fn start<S: Send>(&mut self, audio_callback: SpawnToken<S>) -> ! {
+    pub async fn start<S: Send>(&mut self, start: Start) -> ! {
         // - set up WM8731 ------------------------------------------------------
         // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
         let codec_i2c_address: u8 = 0x1a; // or 0x1b if CSB is high
@@ -159,19 +163,27 @@ impl<'a> Interface<'a> {
 
         // - start audio ------------------------------------------------------
 
-        //start sai_rx dma interrupt
-        interrupt::DMA1_STREAM2.set_priority(interrupt::Priority::P2);
-        let spawner = EXECUTOR_DMA.start(interrupt::DMA1_STREAM2);
-        spawner.spawn(audio_callback).unwrap();
-
         self.sai_tx.start();
         self.sai_rx.start();
         // in daisy_bsp/src/audio.rs...Interface::start(), it waits untill sai1's fifo starts to receive data.
         // I don't know how to get fifo state in embassy.
+        let Start {
+            mut if_to_client,
+            mut client_to_if,
+        } = start;
 
         loop {
-            self.sai_rx.read(data);
+            // Obtain a free buffer from the channel
+            let buf = if_to_client.send().await;
+            // and fill it with data
+            self.sai_rx.read(buf).await.unwrap();
+            //Notify the channel that the buffer is now ready to be received
+            if_to_client.send_done();
+            // await till client audio callback task finish processing
+            let buf = client_to_if.receive().await;
+            self.sai_tx.write(buf).await.unwrap();
             self.sai_tx.flush();
+            client_to_if.receive_done();
         }
     }
     pub fn rx_config(&self) -> &sai::Config {

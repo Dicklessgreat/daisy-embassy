@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "stm32h750ib", "time-driver-tim2", "exti", "memory-x", "unstable-pac", "chrono"] }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+# embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", features = ["defmt"] }
 static_cell = "2.1.0"
