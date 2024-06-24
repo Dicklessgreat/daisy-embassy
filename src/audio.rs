@@ -141,7 +141,7 @@ impl<'a> Interface<'a> {
             i2c,
         }
     }
-    pub async fn start<S: Send>(&mut self, start: Start) -> ! {
+    pub async fn start(&mut self, start: Start) -> ! {
         // - set up WM8731 ------------------------------------------------------
         // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
         let codec_i2c_address: u8 = 0x1a; // or 0x1b if CSB is high
