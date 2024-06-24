@@ -7,8 +7,8 @@ use embassy_time::Timer;
 use hal::{
     peripherals,
     sai::{
-        self, ClockStrobe, ComplementFormat, Config, DataSize, FrameSyncPolarity,
-        MasterClockDivider, Mode, Sai, StereoMono, TxRx,
+        self, ClockStrobe, Config, DataSize, FrameSyncPolarity, MasterClockDivider, Mode, Sai,
+        StereoMono, TxRx,
     },
     time::Hertz,
 };
@@ -179,8 +179,9 @@ impl<'a> Interface<'a> {
             self.sai_rx.read(buf).await.unwrap();
             //Notify the channel that the buffer is now ready to be received
             if_to_client.send_done();
-            // await till client audio callback task finish processing
+            // await till client audio callback task has finished processing
             let buf = client_to_if.receive().await;
+            // write buffer to sai
             self.sai_tx.write(buf).await.unwrap();
             self.sai_tx.flush();
             client_to_if.receive_done();
@@ -195,42 +196,41 @@ impl<'a> Interface<'a> {
 }
 
 //from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L381
-#[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 #[repr(u8)]
 enum Register {
-    LINVOL = 0x00,
-    RINVOL = 0x01,
-    LOUT1V = 0x02,
-    ROUT1V = 0x03,
-    APANA = 0x04,
-    APDIGI = 0x05, // 0000_0101
-    PWR = 0x06,
-    IFACE = 0x07,  // 0000_0111
-    SRATE = 0x08,  // 0000_1000
-    ACTIVE = 0x09, // 0000_1001
-    RESET = 0x0F,
+    Linvol = 0x00,
+    Rinvol = 0x01,
+    Lout1v = 0x02,
+    Rout1v = 0x03,
+    Apana = 0x04,
+    Apdigi = 0x05, // 0000_0101
+    Pwr = 0x06,
+    Iface = 0x07,  // 0000_0111
+    Srate = 0x08,  // 0000_1000
+    Active = 0x09, // 0000_1001
+    Reset = 0x0F,
 }
 const REGISTER_CONFIG: &[(Register, u8)] = &[
     // reset Codec
-    (Register::RESET, 0x00),
+    (Register::Reset, 0x00),
     // set line inputs 0dB
-    (Register::LINVOL, 0x17),
-    (Register::RINVOL, 0x17),
+    (Register::Linvol, 0x17),
+    (Register::Rinvol, 0x17),
     // set headphone to mute
-    (Register::LOUT1V, 0x00),
-    (Register::ROUT1V, 0x00),
+    (Register::Lout1v, 0x00),
+    (Register::Rout1v, 0x00),
     // set analog and digital routing
-    (Register::APANA, 0x12),
-    (Register::APDIGI, 0x01),
+    (Register::Apana, 0x12),
+    (Register::Apdigi, 0x01),
     // configure power management
-    (Register::PWR, 0x42),
+    (Register::Pwr, 0x42),
     // configure digital format
-    (Register::IFACE, 0x0A),
+    (Register::Iface, 0x0A),
     // set samplerate
-    (Register::SRATE, 0x00),
-    (Register::ACTIVE, 0x00),
-    (Register::ACTIVE, 0x01),
+    (Register::Srate, 0x00),
+    (Register::Active, 0x00),
+    (Register::Active, 0x01),
 ];
 
 const fn mclk_div_from_u8(v: u8) -> MasterClockDivider {
