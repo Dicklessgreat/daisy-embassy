@@ -71,7 +71,7 @@ impl Fs {
             Fs::Fs192000 => 192000,
         };
         let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
-        let mclk_div = (kernel_clock / fs * CLOCK_RATIO) as u8;
+        let mclk_div = (kernel_clock / (fs * CLOCK_RATIO)) as u8;
         mclk_div_from_u8(mclk_div)
     }
 }
