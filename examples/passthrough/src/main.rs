@@ -4,7 +4,7 @@
 use daisy_embassy::{
     audio::{Fs, InterleavedBlock, Start, HALF_DMA_BUFFER_LENGTH},
     embassy_sync::{blocking_mutex::raw::NoopRawMutex, zerocopy_channel::Channel},
-    DaisyBoard,
+    hal, DaisyBoard,
 };
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
@@ -13,7 +13,31 @@ use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    let board = DaisyBoard::new(Default::default(), Fs::Fs48000, Fs::Fs48000);
+    let mut config = hal::Config::default();
+    {
+        use hal::rcc::*;
+        config.rcc.hsi = Some(HSIPrescaler::DIV1);
+        config.rcc.csi = true;
+        config.rcc.pll1 = Some(Pll {
+            source: PllSource::HSI,
+            prediv: PllPreDiv::DIV4,
+            mul: PllMul::MUL50,
+            divp: Some(PllDiv::DIV2),
+            divq: Some(PllDiv::DIV8),
+            divr: None,
+        });
+        config.rcc.sys = Sysclk::PLL1_P; // 400 Mhz
+        config.rcc.ahb_pre = AHBPrescaler::DIV2; // 200 Mhz
+        config.rcc.apb1_pre = APBPrescaler::DIV2; // 100 Mhz
+        config.rcc.apb2_pre = APBPrescaler::DIV2; // 100 Mhz
+        config.rcc.apb3_pre = APBPrescaler::DIV2; // 100 Mhz
+        config.rcc.apb4_pre = APBPrescaler::DIV2; // 100 Mhz
+        config.rcc.voltage_scale = VoltageScale::Scale1;
+        //default as PLL1_Q?
+        //use hal::pac::rcc::vals::Saisel;
+        //config.rcc.mux.sai1sel = Saisel::PLL1_Q;
+    }
+    let board = DaisyBoard::new(config, Fs::Fs48000, Fs::Fs48000);
     let mut interface = board.interface;
 
     static TO_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
