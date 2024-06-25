@@ -4,7 +4,8 @@
 use daisy_embassy::{
     audio::{Fs, InterleavedBlock, Start, HALF_DMA_BUFFER_LENGTH},
     embassy_sync::{blocking_mutex::raw::NoopRawMutex, zerocopy_channel::Channel},
-    hal, DaisyBoard,
+    hal::{self, time::Hertz},
+    DaisyBoard,
 };
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
@@ -33,6 +34,10 @@ async fn main(_spawner: Spawner) {
         config.rcc.apb3_pre = APBPrescaler::DIV2; // 100 Mhz
         config.rcc.apb4_pre = APBPrescaler::DIV2; // 100 Mhz
         config.rcc.voltage_scale = VoltageScale::Scale1;
+        config.rcc.hse = Some(Hse {
+            freq: Hertz::mhz(16),
+            mode: HseMode::Oscillator,
+        })
         //default as PLL1_Q?
         //use hal::pac::rcc::vals::Saisel;
         //config.rcc.mux.sai1sel = Saisel::PLL1_Q;
