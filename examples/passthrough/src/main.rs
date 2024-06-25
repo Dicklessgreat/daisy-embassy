@@ -14,6 +14,8 @@ use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
+    let mut core = cortex_m::Peripherals::take().unwrap();
+    core.SCB.enable_icache();
     let mut config = hal::Config::default();
     {
         use hal::rcc::*;
