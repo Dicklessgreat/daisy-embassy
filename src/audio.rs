@@ -31,7 +31,7 @@ pub struct Interface<'a> {
     sai_rx_conf: sai::Config,
     sai_tx: Sai<'a, peripherals::SAI1, u32>,
     sai_rx: Sai<'a, peripherals::SAI1, u32>,
-    i2c: hal::i2c::I2c<'a, hal::mode::Async>,
+    i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
 }
 
 pub struct Peripherals {
@@ -129,8 +129,8 @@ impl<'a> Interface<'a> {
         );
 
         let i2c_config = hal::i2c::Config::default();
-        let i2c = embassy_stm32::i2c::I2c::new(
-            p.i2c2, wm8731.SCL, wm8731.SDA, Irqs, p.dma1_ch4, p.dma1_ch5, I2C_FS, i2c_config,
+        let i2c = embassy_stm32::i2c::I2c::new_blocking(
+            p.i2c2, wm8731.SCL, wm8731.SDA, I2C_FS, i2c_config,
         );
 
         Self {
@@ -154,7 +154,7 @@ impl<'a> Interface<'a> {
             let byte2: u8 = value;
             let bytes = [byte1, byte2];
 
-            self.i2c.write(codec_i2c_address, &bytes).await.unwrap();
+            self.i2c.blocking_write(codec_i2c_address, &bytes).unwrap();
 
             // wait ~10us
             Timer::after_micros(10).await;
