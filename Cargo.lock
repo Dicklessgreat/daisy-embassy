@@ -104,6 +104,7 @@ checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 name = "daisy_embassy"
 version = "0.1.0"
 dependencies = [
+ "defmt",
  "embassy-stm32",
  "embassy-sync",
  "embassy-time",

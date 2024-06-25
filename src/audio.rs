@@ -1,3 +1,4 @@
+use defmt::debug;
 use embassy_stm32 as hal;
 use embassy_sync::{
     blocking_mutex::raw::NoopRawMutex,
@@ -83,6 +84,7 @@ impl<'a> Interface<'a> {
     pub fn new(wm8731: WM8731Pins, p: Peripherals, tx_fs: Fs, rx_fs: Fs) -> Self {
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
+        debug!("set up sai_tx");
         // I have no idea how to set up SAI! WIP
         let mut sai_tx_conf = Config::default();
         sai_tx_conf.mode = Mode::Slave;
@@ -104,6 +106,7 @@ impl<'a> Interface<'a> {
             sai_tx_conf,
         );
 
+        debug!("set up sai_rx");
         // I have no idea how to set up SAI! WIP
         let mut sai_rx_conf = Config::default();
         sai_rx_conf.tx_rx = TxRx::Receiver;
@@ -128,6 +131,7 @@ impl<'a> Interface<'a> {
             sai_rx_conf,
         );
 
+        debug!("set up i2c");
         let i2c_config = hal::i2c::Config::default();
         let i2c = embassy_stm32::i2c::I2c::new_blocking(
             p.i2c2, wm8731.SCL, wm8731.SDA, I2C_FS, i2c_config,
@@ -142,8 +146,10 @@ impl<'a> Interface<'a> {
         }
     }
     pub async fn start(&mut self, start: Start) -> ! {
+        debug!("let's set up audio callback");
         // - set up WM8731 ------------------------------------------------------
         // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
+        debug!("first, set up WM8731");
         let codec_i2c_address: u8 = 0x1a; // or 0x1b if CSB is high
 
         // Go through configuration setup
@@ -158,10 +164,11 @@ impl<'a> Interface<'a> {
 
             // wait ~10us
             Timer::after_micros(10).await;
+            debug!("sent a packet via i2c...");
         }
 
         // - start audio ------------------------------------------------------
-
+        debug!("let's start SAI");
         self.sai_tx.start();
         self.sai_rx.start();
         // in daisy_bsp/src/audio.rs...Interface::start(), it waits untill sai1's fifo starts to receive data.
@@ -171,6 +178,7 @@ impl<'a> Interface<'a> {
             mut client_to_if,
         } = start;
 
+        debug!("enter audio callback loop");
         loop {
             // Obtain a free buffer from the channel
             let buf = if_to_client.send().await;
