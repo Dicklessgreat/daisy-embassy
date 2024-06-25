@@ -78,8 +78,6 @@ impl<'a> DaisyBoard<'a> {
                 i2c2: p.I2C2,
                 dma1_ch1: p.DMA1_CH1,
                 dma1_ch2: p.DMA1_CH2,
-                dma1_ch4: p.DMA1_CH4,
-                dma1_ch5: p.DMA1_CH5,
             },
             tx_fs,
             rx_fs,

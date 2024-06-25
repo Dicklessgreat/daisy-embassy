@@ -1,3 +1,4 @@
+use crate::pins::WM8731Pins;
 use defmt::debug;
 use embassy_stm32 as hal;
 use embassy_sync::{
@@ -5,6 +6,7 @@ use embassy_sync::{
     zerocopy_channel::{Receiver, Sender},
 };
 use embassy_time::Timer;
+use grounded::uninit::GroundedArrayCell;
 use hal::{
     peripherals,
     sai::{
@@ -13,15 +15,20 @@ use hal::{
     },
     time::Hertz,
 };
-use static_cell::StaticCell;
-
-use crate::{board::Irqs, pins::WM8731Pins};
 // - global constants ---------------------------------------------------------
 
 const I2C_FS: Hertz = Hertz(100_000);
 pub const BLOCK_LENGTH: usize = 32; // 32 samples
 pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2; //  2 channels
 pub const DMA_BUFFER_LENGTH: usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-blocks
+
+// - static data --------------------------------------------------------------
+
+//DMA buffer must be in special region. Refer https://embassy.dev/book/#_stm32_bdma_only_working_out_of_some_ram_regions
+#[link_section = ".sram1_bss"]
+static mut TX_BUFFER: GroundedArrayCell<u32, DMA_BUFFER_LENGTH> = GroundedArrayCell::uninit();
+#[link_section = ".sram1_bss"]
+static mut RX_BUFFER: GroundedArrayCell<u32, DMA_BUFFER_LENGTH> = GroundedArrayCell::uninit();
 
 // - types --------------------------------------------------------------------
 
@@ -40,8 +47,6 @@ pub struct Peripherals {
     pub i2c2: hal::peripherals::I2C2,
     pub dma1_ch1: hal::peripherals::DMA1_CH1,
     pub dma1_ch2: hal::peripherals::DMA1_CH2,
-    pub dma1_ch4: hal::peripherals::DMA1_CH4,
-    pub dma1_ch5: hal::peripherals::DMA1_CH5,
 }
 
 pub struct Start {
@@ -96,8 +101,11 @@ impl<'a> Interface<'a> {
         sai_tx_conf.master_clock_divider = tx_fs.into_clock_divider();
         // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
         // sai_tx_conf.complement_format = ComplementFormat::OnesComplement;
-        static TX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
-        let tx_buffer = TX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
+        let tx_buffer: &mut [u32] = unsafe {
+            TX_BUFFER.initialize_all_copied(0);
+            let (ptr, len) = TX_BUFFER.get_ptr_len();
+            core::slice::from_raw_parts_mut(ptr, len)
+        };
         let sai_tx = hal::sai::Sai::new_synchronous(
             sub_block_transmitter,
             wm8731.SD_B,
@@ -118,8 +126,11 @@ impl<'a> Interface<'a> {
         sai_rx_conf.master_clock_divider = rx_fs.into_clock_divider();
         // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
         // sai_rx_conf.complement_format = ComplementFormat::OnesComplement;
-        static RX_BUFFER: StaticCell<[u32; DMA_BUFFER_LENGTH]> = StaticCell::new();
-        let rx_buffer = RX_BUFFER.init([0; DMA_BUFFER_LENGTH]);
+        let rx_buffer: &mut [u32] = unsafe {
+            RX_BUFFER.initialize_all_copied(0);
+            let (ptr, len) = RX_BUFFER.get_ptr_len();
+            core::slice::from_raw_parts_mut(ptr, len)
+        };
         let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
             sub_block_receiver,
             wm8731.SCK_A,
