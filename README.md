@@ -11,15 +11,14 @@ Tell me how to properly set up:
 - clocks
 - SAI
 - SDRAM
-- FMC(and what does it use for??)
-- 
+- FMC(and what is it used for??)
 
 Let's discuss:
 - design interfaces/methods
 - audio buffer. zerocopy? DMA interrupt?
 - u32? f32? for audio callback
 
-Not yet implemented
+Not yet implemented:
 - audio inout only or output only.
 - much much more
 
