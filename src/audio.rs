@@ -3,7 +3,7 @@ use defmt::debug;
 use embassy_stm32 as hal;
 use embassy_sync::{
     blocking_mutex::raw::NoopRawMutex,
-    zerocopy_channel::{Receiver, Sender},
+    zerocopy_channel::{Channel, Receiver, Sender},
 };
 use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
@@ -15,6 +15,7 @@ use hal::{
     },
     time::Hertz,
 };
+use static_cell::StaticCell;
 // - global constants ---------------------------------------------------------
 
 const I2C_FS: Hertz = Hertz(100_000);
@@ -33,6 +34,10 @@ static mut RX_BUFFER: GroundedArrayCell<u32, DMA_BUFFER_LENGTH> = GroundedArrayC
 // - types --------------------------------------------------------------------
 
 pub type InterleavedBlock = [u32; HALF_DMA_BUFFER_LENGTH];
+pub type AudioBlockBuffers = (
+    Sender<'static, NoopRawMutex, InterleavedBlock>,
+    Receiver<'static, NoopRawMutex, InterleavedBlock>,
+);
 
 pub struct Interface<'a> {
     sai_tx_conf: sai::Config,
@@ -40,6 +45,8 @@ pub struct Interface<'a> {
     sai_tx: Sai<'a, peripherals::SAI1, u32>,
     sai_rx: Sai<'a, peripherals::SAI1, u32>,
     i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
+    pub to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
+    pub from_client: Receiver<'static, NoopRawMutex, InterleavedBlock>,
 }
 
 pub struct Peripherals {
@@ -47,11 +54,6 @@ pub struct Peripherals {
     pub i2c2: hal::peripherals::I2C2,
     pub dma1_ch1: hal::peripherals::DMA1_CH1,
     pub dma1_ch2: hal::peripherals::DMA1_CH2,
-}
-
-pub struct Start {
-    pub if_to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
-    pub client_to_if: Receiver<'static, NoopRawMutex, InterleavedBlock>,
 }
 
 pub enum Fs {
@@ -86,7 +88,12 @@ impl Fs {
 }
 
 impl<'a> Interface<'a> {
-    pub fn new(wm8731: WM8731Pins, p: Peripherals, tx_fs: Fs, rx_fs: Fs) -> Self {
+    pub fn new(
+        wm8731: WM8731Pins,
+        p: Peripherals,
+        tx_fs: Fs,
+        rx_fs: Fs,
+    ) -> (Self, AudioBlockBuffers) {
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
         debug!("set up sai_tx");
@@ -148,15 +155,34 @@ impl<'a> Interface<'a> {
             p.i2c2, wm8731.SCL, wm8731.SDA, I2C_FS, i2c_config,
         );
 
-        Self {
-            sai_rx_conf,
-            sai_tx_conf,
-            sai_rx,
-            sai_tx,
-            i2c,
-        }
+        static TO_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
+        let to_interface_buf = TO_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
+        static TO_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
+            StaticCell::new();
+        let (client_to_if_tx, client_to_if_rx) =
+            TO_INTERFACE.init(Channel::new(to_interface_buf)).split();
+        static FROM_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
+        let from_interface_buf = FROM_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
+        static FROM_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
+            StaticCell::new();
+        let (if_to_client_tx, if_to_client_rx) = FROM_INTERFACE
+            .init(Channel::new(from_interface_buf))
+            .split();
+
+        (
+            Self {
+                sai_rx_conf,
+                sai_tx_conf,
+                sai_rx,
+                sai_tx,
+                i2c,
+                to_client: if_to_client_tx,
+                from_client: client_to_if_rx,
+            },
+            (client_to_if_tx, if_to_client_rx),
+        )
     }
-    pub async fn start(&mut self, start: Start) -> ! {
+    pub async fn start(&mut self) -> ! {
         debug!("let's set up audio callback");
         // - set up WM8731 ------------------------------------------------------
         // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
@@ -184,25 +210,21 @@ impl<'a> Interface<'a> {
         self.sai_rx.start();
         // in daisy_bsp/src/audio.rs...Interface::start(), it waits untill sai1's fifo starts to receive data.
         // I don't know how to get fifo state in embassy.
-        let Start {
-            mut if_to_client,
-            mut client_to_if,
-        } = start;
 
         debug!("enter audio callback loop");
         loop {
             // Obtain a free buffer from the channel
-            let buf = if_to_client.send().await;
+            let buf = self.to_client.send().await;
             // and fill it with data
             self.sai_rx.read(buf).await.unwrap();
             //Notify the channel that the buffer is now ready to be received
-            if_to_client.send_done();
+            self.to_client.send_done();
             // await till client audio callback task has finished processing
-            let buf = client_to_if.receive().await;
+            let buf = self.from_client.receive().await;
             // write buffer to sai
             self.sai_tx.write(buf).await.unwrap();
             self.sai_tx.flush();
-            client_to_if.receive_done();
+            self.from_client.receive_done();
         }
     }
     pub fn rx_config(&self) -> &sai::Config {
