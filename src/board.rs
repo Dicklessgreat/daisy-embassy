@@ -46,11 +46,11 @@ pub struct DaisyBoard<'a> {
     pub SEED_PIN_30: SeedPin30,
 
     // board peripherals
-    pub LED_USER: UserLed<'a>,
+    pub user_led: UserLed<'a>,
     pub interface: Interface<'a>,
     pub FMC: FMCPins,
     pub SDRAM: (), // TODO
-    pub USB2: DaisyUsb,
+    pub daisy_usb: DaisyUsb,
 }
 
 impl<'a> DaisyBoard<'a> {
@@ -114,7 +114,7 @@ impl<'a> DaisyBoard<'a> {
             SEED_PIN_28: p.PA2,
             SEED_PIN_29: p.PB14,
             SEED_PIN_30: p.PB15,
-            LED_USER: UserLed::new(p.PC7),
+            user_led: UserLed::new(p.PC7),
             interface,
             FMC: FMCPins {
                 IO0: p.PF8,
@@ -125,7 +125,7 @@ impl<'a> DaisyBoard<'a> {
                 CS: p.PG6,
             },
             SDRAM: (),
-            USB2: usb_driver,
+            daisy_usb: usb_driver,
         }
     }
 }
