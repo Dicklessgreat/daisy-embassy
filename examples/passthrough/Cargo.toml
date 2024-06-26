@@ -18,8 +18,6 @@ defmt = "0.3.8"
 defmt-rtt = "0.4.1"
 panic-probe = { version = "0.3.2", features = ["print-defmt"] }
 
-static_cell = "2.1.0"
-
 [profile.release]
 codegen-units = 1
 debug = 2

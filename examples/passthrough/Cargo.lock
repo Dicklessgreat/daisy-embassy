@@ -567,7 +567,6 @@ dependencies = [
  "embassy-futures",
  "embassy-time",
  "panic-probe",
- "static_cell",
 ]
 
 [[package]]

@@ -2,8 +2,7 @@
 #![no_main]
 
 use daisy_embassy::{
-    audio::{Fs, InterleavedBlock, HALF_DMA_BUFFER_LENGTH},
-    embassy_sync::{blocking_mutex::raw::NoopRawMutex, zerocopy_channel::Channel},
+    audio::{Fs, HALF_DMA_BUFFER_LENGTH},
     hal::{self, time::Hertz},
     new_daisy_p,
     pins::{DaisyPins, USB2Pins, WM8731Pins},
@@ -11,7 +10,6 @@ use daisy_embassy::{
 };
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
-use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
