@@ -13,7 +13,7 @@ bind_interrupts!(pub struct Irqs {
 
 #[allow(non_snake_case)]
 pub struct DaisyBoard<'a> {
-    daisy_pins: DaisyPins,
+    pub daisy_pins: DaisyPins,
 
     // board peripherals
     pub user_led: UserLed<'a>,
