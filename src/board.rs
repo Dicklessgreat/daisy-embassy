@@ -2,6 +2,7 @@ use crate::audio::{self, Interface};
 use crate::pins::*;
 use crate::{led::UserLed, usb::DaisyUsb};
 use embassy_stm32 as hal;
+use hal::peripherals::USB_OTG_FS;
 use hal::{bind_interrupts, i2c, peripherals, usb};
 
 bind_interrupts!(pub struct Irqs {
@@ -12,118 +13,34 @@ bind_interrupts!(pub struct Irqs {
 
 #[allow(non_snake_case)]
 pub struct DaisyBoard<'a> {
-    // https://github.com/electro-smith/DaisyWiki/wiki/2.-Daisy-Seed-Pinout
-    pub SEED_PIN_0: SeedPin0,
-    pub SEED_PIN_1: SeedPin1,
-    pub SEED_PIN_2: SeedPin2,
-    pub SEED_PIN_3: SeedPin3,
-    pub SEED_PIN_4: SeedPin4,
-    pub SEED_PIN_5: SeedPin5,
-    pub SEED_PIN_6: SeedPin6,
-    pub SEED_PIN_7: SeedPin7,
-    pub SEED_PIN_8: SeedPin8,
-    pub SEED_PIN_9: SeedPin9,
-    pub SEED_PIN_10: SeedPin10,
-    pub SEED_PIN_11: SeedPin11,
-    pub SEED_PIN_12: SeedPin12,
-    pub SEED_PIN_13: SeedPin13,
-    pub SEED_PIN_14: SeedPin14,
-    pub SEED_PIN_15: SeedPin15,
-    pub SEED_PIN_16: SeedPin16,
-    pub SEED_PIN_17: SeedPin17,
-    pub SEED_PIN_18: SeedPin18,
-    pub SEED_PIN_19: SeedPin19,
-    pub SEED_PIN_20: SeedPin20,
-    pub SEED_PIN_21: SeedPin21,
-    pub SEED_PIN_22: SeedPin22,
-    pub SEED_PIN_23: SeedPin23,
-    pub SEED_PIN_24: SeedPin24,
-    pub SEED_PIN_25: SeedPin25,
-    pub SEED_PIN_26: SeedPin26,
-    pub SEED_PIN_27: SeedPin27,
-    pub SEED_PIN_28: SeedPin28,
-    pub SEED_PIN_29: SeedPin29,
-    pub SEED_PIN_30: SeedPin30,
+    daisy_pins: DaisyPins,
 
     // board peripherals
     pub user_led: UserLed<'a>,
     pub interface: Interface<'a>,
-    pub FMC: FMCPins,
+    pub FMC: (),   //TODO
     pub SDRAM: (), // TODO
     pub daisy_usb: DaisyUsb,
 }
 
+pub struct DaisyPeripherals {
+    pub daisy_pins: DaisyPins,
+    pub led_user_pin: LedUserPin,
+    pub wm8731_pin: WM8731Pins,
+    pub audio_peripherals: audio::Peripherals,
+    pub usb2_pins: USB2Pins,
+    pub usb_otg_fs: USB_OTG_FS,
+}
+
 impl<'a> DaisyBoard<'a> {
-    pub fn new(config: embassy_stm32::Config, tx_fs: audio::Fs, rx_fs: audio::Fs) -> Self {
-        let p = embassy_stm32::init(config);
-        let usb_driver = crate::usb::init(
-            p.USB_OTG_FS,
-            USB2Pins {
-                DN: p.PA11,
-                DP: p.PA12,
-            },
-        );
-        let interface = Interface::new(
-            WM8731Pins {
-                SCL: p.PH4,
-                SDA: p.PB11,
-                MCLK_A: p.PE2,
-                SCK_A: p.PE5,
-                FS_A: p.PE4,
-                SD_A: p.PE6,
-                SD_B: p.PE3,
-            },
-            audio::Peripherals {
-                sai1: p.SAI1,
-                i2c2: p.I2C2,
-                dma1_ch1: p.DMA1_CH1,
-                dma1_ch2: p.DMA1_CH2,
-            },
-            tx_fs,
-            rx_fs,
-        );
+    pub fn new(p: DaisyPeripherals, tx_fs: audio::Fs, rx_fs: audio::Fs) -> Self {
+        let usb_driver = crate::usb::init(p.usb_otg_fs, p.usb2_pins);
+        let interface = Interface::new(p.wm8731_pin, p.audio_peripherals, tx_fs, rx_fs);
         Self {
-            SEED_PIN_0: p.PB12,
-            SEED_PIN_1: p.PC11,
-            SEED_PIN_2: p.PC10,
-            SEED_PIN_3: p.PC9,
-            SEED_PIN_4: p.PC8,
-            SEED_PIN_5: p.PD2,
-            SEED_PIN_6: p.PC12,
-            SEED_PIN_7: p.PG10,
-            SEED_PIN_8: p.PG11,
-            SEED_PIN_9: p.PB4,
-            SEED_PIN_10: p.PB5,
-            SEED_PIN_11: p.PB8,
-            SEED_PIN_12: p.PB9,
-            SEED_PIN_13: p.PB6,
-            SEED_PIN_14: p.PB7,
-            SEED_PIN_15: p.PC0,
-            SEED_PIN_16: p.PA3,
-            SEED_PIN_17: p.PB1,
-            SEED_PIN_18: p.PA7,
-            SEED_PIN_19: p.PA6,
-            SEED_PIN_20: p.PC1,
-            SEED_PIN_21: p.PC4,
-            SEED_PIN_22: p.PA5,
-            SEED_PIN_23: p.PA4,
-            SEED_PIN_24: p.PA1,
-            SEED_PIN_25: p.PA0,
-            SEED_PIN_26: p.PD11,
-            SEED_PIN_27: p.PG9,
-            SEED_PIN_28: p.PA2,
-            SEED_PIN_29: p.PB14,
-            SEED_PIN_30: p.PB15,
-            user_led: UserLed::new(p.PC7),
+            daisy_pins: p.daisy_pins,
+            user_led: UserLed::new(p.led_user_pin),
             interface,
-            FMC: FMCPins {
-                IO0: p.PF8,
-                IO1: p.PF9,
-                IO2: p.PF7,
-                IO3: p.PF6,
-                SCK: p.PF10,
-                CS: p.PG6,
-            },
+            FMC: (),
             SDRAM: (),
             daisy_usb: usb_driver,
         }
