@@ -1,0 +1,23 @@
+This crate is designed for daisy seed with embassy.
+Now this crate is on REALLY early stage. 
+Just for the enthusiast only.
+Because the author doesn't know what he is doing, don't try this at your production.
+
+Tell me how to properly set up:
+- clocks
+- SAI
+- SDRAM
+- FMC(and what does it use for??)
+- 
+
+Let's discuss:
+- design interfaces/methods
+- audio buffer. zerocopy? DMA interrupt?
+- u32? f32? for audio callback
+
+Not yet implemented
+- audio inout only or output only.
+- much much more
+
+contribution:
+welcome!
