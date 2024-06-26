@@ -87,12 +87,25 @@ impl Fs {
     }
 }
 
+pub struct AudioConfig {
+    tx_fs: Fs,
+    rx_fs: Fs,
+}
+
+impl Default for AudioConfig {
+    fn default() -> Self {
+        AudioConfig {
+            tx_fs: Fs::Fs48000,
+            rx_fs: Fs::Fs48000,
+        }
+    }
+}
+
 impl<'a> Interface<'a> {
     pub fn new(
         wm8731: WM8731Pins,
         p: Peripherals,
-        tx_fs: Fs,
-        rx_fs: Fs,
+        config: AudioConfig,
     ) -> (Self, AudioBlockBuffers) {
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
@@ -105,7 +118,7 @@ impl<'a> Interface<'a> {
         sai_tx_conf.data_size = DataSize::Data24;
         sai_tx_conf.clock_strobe = ClockStrobe::Falling;
         sai_tx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-        sai_tx_conf.master_clock_divider = tx_fs.into_clock_divider();
+        sai_tx_conf.master_clock_divider = config.tx_fs.into_clock_divider();
         // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
         // sai_tx_conf.complement_format = ComplementFormat::OnesComplement;
         let tx_buffer: &mut [u32] = unsafe {
@@ -130,7 +143,7 @@ impl<'a> Interface<'a> {
         sai_rx_conf.data_size = DataSize::Data24;
         sai_rx_conf.clock_strobe = ClockStrobe::Rising;
         sai_rx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-        sai_rx_conf.master_clock_divider = rx_fs.into_clock_divider();
+        sai_rx_conf.master_clock_divider = config.rx_fs.into_clock_divider();
         // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
         // sai_rx_conf.complement_format = ComplementFormat::OnesComplement;
         let rx_buffer: &mut [u32] = unsafe {

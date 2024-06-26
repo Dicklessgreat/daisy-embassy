@@ -1,4 +1,4 @@
-use crate::audio::{self, AudioBlockBuffers, Interface};
+use crate::audio::{self, AudioBlockBuffers, AudioConfig, Interface};
 use crate::pins::*;
 use crate::{led::UserLed, usb::DaisyUsb};
 use embassy_stm32 as hal;
@@ -33,13 +33,9 @@ pub struct DaisyPeripherals {
 }
 
 impl<'a> DaisyBoard<'a> {
-    pub fn new(
-        p: DaisyPeripherals,
-        tx_fs: audio::Fs,
-        rx_fs: audio::Fs,
-    ) -> (Self, AudioBlockBuffers) {
+    pub fn new(p: DaisyPeripherals, audio_config: AudioConfig) -> (Self, AudioBlockBuffers) {
         let usb_driver = crate::usb::init(p.usb_otg_fs, p.usb2_pins);
-        let (interface, buffers) = Interface::new(p.wm8731_pin, p.audio_peripherals, tx_fs, rx_fs);
+        let (interface, buffers) = Interface::new(p.wm8731_pin, p.audio_peripherals, audio_config);
         (
             Self {
                 daisy_pins: p.daisy_pins,
