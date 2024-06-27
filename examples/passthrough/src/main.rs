@@ -8,12 +8,14 @@ use daisy_embassy::{
     pins::{DaisyPins, USB2Pins, WM8731Pins},
     DaisyBoard,
 };
+use defmt::debug;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
+    debug!("====program start====");
     let mut core = cortex_m::Peripherals::take().unwrap();
     core.SCB.enable_icache();
     let mut config = hal::Config::default();
@@ -56,13 +58,20 @@ async fn main(_spawner: Spawner) {
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
         loop {
+            // todo...debug! macros are because currently this audio callback cause deadlock.
+            // they should be removed after audio callback works fine
+            debug!("a");
             let rx = from_interface.receive().await;
+            debug!("b");
             buf.copy_from_slice(rx);
             from_interface.receive_done();
+            debug!("c");
 
             let tx = to_interface.send().await;
+            debug!("d");
             tx.copy_from_slice(&buf);
             to_interface.send_done();
+            debug!("e");
         }
     };
     join(interface_fut, audio_callback_fut).await;

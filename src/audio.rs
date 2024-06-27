@@ -226,18 +226,28 @@ impl<'a> Interface<'a> {
 
         debug!("enter audio callback loop");
         loop {
+            // todo...debug! macros are because currently this audio callback cause deadlock.
+            // they should be removed after audio callback works fine
+
+            debug!("1");
             // Obtain a free buffer from the channel
             let buf = self.to_client.send().await;
+            debug!("2");
             // and fill it with data
             self.sai_rx.read(buf).await.unwrap();
+            debug!("3");
             //Notify the channel that the buffer is now ready to be received
             self.to_client.send_done();
+            debug!("4");
             // await till client audio callback task has finished processing
             let buf = self.from_client.receive().await;
+            debug!("5");
             // write buffer to sai
-            self.sai_tx.write(buf).await.unwrap();
             self.sai_tx.flush();
+            debug!("6");
+            self.sai_tx.write(buf).await.unwrap();
             self.from_client.receive_done();
+            debug!("7");
         }
     }
     pub fn rx_config(&self) -> &sai::Config {
