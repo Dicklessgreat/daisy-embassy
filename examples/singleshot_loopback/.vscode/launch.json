@@ -23,7 +23,7 @@
             "coreConfigs": [
                 {
                     "coreIndex": 0,
-                    "programBinary": "target/thumbv7em-none-eabihf/debug/passthrough",
+                    "programBinary": "target/thumbv7em-none-eabihf/debug/singleshot_loopback",
                     "chip": "STM32H750IBKx",
                     // "rttEnabled": true,
                     "options": {
