@@ -7,6 +7,8 @@ I have referred to the following:
 https://github.com/stm32-rs/stm32h7xx-hal
 https://github.com/antoinevg/daisy_bsp
 
+Run examples with `cargo run --example <example_name>`
+
 Tell me how to properly set up:
 - clocks
 - SAI
@@ -15,7 +17,7 @@ Tell me how to properly set up:
 
 Let's discuss:
 - design interfaces/methods
-- audio buffer. zerocopy? DMA interrupt?
+- audio buffer. zerocopy? DMA or SAI interrupt?
 - u32? f32? for audio callback
 
 Not yet implemented:
