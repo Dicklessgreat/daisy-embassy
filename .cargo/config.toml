@@ -1,5 +1,13 @@
 [target.thumbv7em-none-eabihf]
-runner = 'probe-rs run --chip STM32H743ZITx'
+runner = 'probe-rs run --chip STM32H750IBKx'
+rustflags = [
+  # --- KEEP existing `link-arg` flags ---
+  "-C", "link-arg=-Tlink.x",
+  "-C", "link-arg=--nmagic",
+
+  # --- ADD following new flag ---
+  "-C", "link-arg=-Tdefmt.x",
+]
 
 [build]
 target = "thumbv7em-none-eabihf" # Cortex-M4F and Cortex-M7F (with FPU)
