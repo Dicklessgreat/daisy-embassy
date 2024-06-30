@@ -113,6 +113,7 @@ async fn execute(hal_config: hal::Config) {
     // buffers to store received audio samples.
     // let mut rx_signal_buf = [[0u32; HALF_DMA_BUFFER_LENGTH]; NUM_ITERATE];
 
+    info!("enter audio loop");
     loop {
         //fill the buffer
         for chunk in signal.chunks_mut(2) {
