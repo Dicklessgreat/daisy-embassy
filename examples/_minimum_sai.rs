@@ -276,7 +276,7 @@ async fn setup_codecs_from_i2c(
             w.left_right_dac_clock_swap().right_channel_dac_data_right();
             w.left_right_phase().data_when_daclrc_low();
             w.bit_length().bits_32();
-            w.format().right_justified();
+            w.format().left_justified();
         }),
     );
     Timer::after_micros(10).await;
