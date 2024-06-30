@@ -113,8 +113,6 @@ async fn execute(hal_config: hal::Config) {
     const NUM_ITERATE: usize = 2;
     // buffers to store received audio samples.
     let mut rx_signal_buf = [[0u32; HALF_DMA_BUFFER_LENGTH]; NUM_ITERATE];
-    sai_receiver.set_mute(true);
-    sai_transmitter.set_mute(true);
 
     for buf in rx_signal_buf.iter_mut() {
         info!("Write SAI frame");
