@@ -242,12 +242,9 @@ impl<'a> Interface<'a> {
             // await till client audio callback task has finished processing
             let buf = self.from_client.receive().await;
             debug!("5");
-            // write buffer to sai
-            self.sai_tx.flush();
-            debug!("6");
             self.sai_tx.write(buf).await.unwrap();
             self.from_client.receive_done();
-            debug!("7");
+            debug!("6");
         }
     }
     pub fn rx_config(&self) -> &sai::Config {
