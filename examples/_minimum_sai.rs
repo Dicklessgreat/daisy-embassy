@@ -102,7 +102,8 @@ async fn execute(hal_config: hal::Config) {
         )
     };
 
-    let signal: [u32; HALF_DMA_BUFFER_LENGTH] = core::array::from_fn(|i| i as u32);
+    let mut smp_pos = 0;
+    let mut signal = [0; HALF_DMA_BUFFER_LENGTH];
 
     info!("Signal value: {}", signal);
 
@@ -110,19 +111,25 @@ async fn execute(hal_config: hal::Config) {
     sai_transmitter.start();
 
     let mut rx_signal = [0u32; HALF_DMA_BUFFER_LENGTH];
-    const NUM_ITERATE: usize = 2;
+    // const NUM_ITERATE: usize = 10;
     // buffers to store received audio samples.
-    let mut rx_signal_buf = [[0u32; HALF_DMA_BUFFER_LENGTH]; NUM_ITERATE];
+    // let mut rx_signal_buf = [[0u32; HALF_DMA_BUFFER_LENGTH]; NUM_ITERATE];
 
-    for buf in rx_signal_buf.iter_mut() {
-        info!("Write SAI frame");
+    loop {
+        //fill the buffer
+        for chunk in signal.chunks_mut(2) {
+            let smp = make_triangle_wave(smp_pos % DUR);
+            chunk[0] = smp;
+            chunk[1] = smp;
+            smp_pos += 1;
+        }
+
         match sai_transmitter.write(&signal).await {
             Ok(_) => {}
             Err(e) => {
                 warn!("Error writing to SAI: {:?}", e);
             }
         }
-        info!("Read SAI frame");
         match sai_receiver.read(&mut rx_signal).await {
             Ok(_) => {}
             Err(e) => {
@@ -136,17 +143,17 @@ async fn execute(hal_config: hal::Config) {
         //         break;
         //     }
         // }
-        *buf = rx_signal;
+        // *buf = rx_signal;
     }
 
-    for buf in rx_signal_buf {
-        info!("{}", buf);
-        // printing each rx_signal_buf costs too much.
-        // let's prevent print-out buffer from overflowing.
-        Timer::after(Duration::from_secs(1)).await;
-    }
+    // for buf in rx_signal_buf {
+    //     info!("{}", buf);
+    //     // printing each rx_signal_buf costs too much.
+    //     // let's prevent print-out buffer from overflowing.
+    //     Timer::after(Duration::from_secs(1)).await;
+    // }
 
-    info!("finished execution");
+    // info!("finished execution");
 }
 
 #[embassy_executor::main]
@@ -372,5 +379,20 @@ const fn mclk_div_from_u8(v: u8) -> MasterClockDivider {
         62 => MasterClockDivider::Div62,
         63 => MasterClockDivider::Div63,
         _ => panic!(),
+    }
+}
+
+const DUR: u32 = 120;
+const fn make_triangle_wave(pos: u32) -> u32 {
+    assert!(pos <= DUR);
+    let half = u32::MAX / 2;
+    if pos <= (DUR / 4) {
+        half + (pos * (half / DUR * 4))
+    } else if (DUR / 4) < pos && pos <= (DUR / 4 * 3) {
+        let pos = pos - DUR / 4;
+        u32::MAX - (pos * (u32::MAX / DUR * 2))
+    } else {
+        let pos = pos - DUR / 4 * 3;
+        (half / DUR * 4) * pos
     }
 }
