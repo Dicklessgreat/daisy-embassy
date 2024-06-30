@@ -48,7 +48,7 @@ async fn execute(hal_config: hal::Config) {
             config.mode = Mode::Slave;
             config.tx_rx = TxRx::Transmitter;
             config.stereo_mono = StereoMono::Stereo;
-            config.data_size = DataSize::Data24;
+            config.data_size = DataSize::Data32;
             config.clock_strobe = ClockStrobe::Falling;
             config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
             let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
