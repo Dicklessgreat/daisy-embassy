@@ -105,8 +105,6 @@ async fn execute(hal_config: hal::Config) {
     let mut smp_pos = 0;
     let mut signal = [0; HALF_DMA_BUFFER_LENGTH];
 
-    info!("Signal value: {}", signal);
-
     sai_receiver.start();
     sai_transmitter.start();
 
@@ -237,80 +235,93 @@ async fn setup_codecs_from_i2c(
     let mut i2c =
         embassy_stm32::i2c::I2c::new_blocking(i2c2, ph4, pb11, Hertz(100_000), i2c_config);
     let ad: u8 = 0x1a; // or 0x1b if CSB is high
-    for (register, value) in REGISTER_CONFIG {
-        let register = *register as u8;
-        let value = *value;
-        let byte1: u8 = ((register << 1) & 0b1111_1110) | ((value >> 7) & 0b0000_0001u8);
-        let byte2: u8 = value;
-        let bytes = [byte1, byte2];
+                       // for (register, value) in REGISTER_CONFIG {
+                       //     let register = *register as u8;
+                       //     let value = *value;
+                       //     let byte1: u8 = ((register << 1) & 0b1111_1110) | ((value >> 7) & 0b0000_0001u8);
+                       //     let byte2: u8 = value;
+                       //     let bytes = [byte1, byte2];
 
-        i2c.blocking_write(ad, &bytes).unwrap();
+    //     i2c.blocking_write(ad, &bytes).unwrap();
 
-        // wait ~10us
-        Timer::after_micros(10).await;
-    }
+    //     // wait ~10us
+    //     Timer::after_micros(10).await;
+    // }
 
     // from https://github.com/soundspotter/ArduinoUNO_AudioCodecMikroe506/blob/master/AudioCodec/AudioCodec.h
     // power reduction register
     // turn everything on
-    // i2c.blocking_write(ad, &[0x0c, 0x00]).unwrap();
-    // Timer::after_micros(10).await;
+    i2c.blocking_write(ad, &[0x0c, 0x00]).unwrap();
+    Timer::after_micros(10).await;
 
-    // i2c.blocking_write(ad, &[0x0e, 0x03]).unwrap();
-    // Timer::after_micros(10).await;
+    i2c.blocking_write(ad, &[0x0e, 0x03]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // left in setup register
-    // i2c.blocking_write(ad, &[0x00, 0x17]).unwrap();
-    // Timer::after_micros(10).await;
+    // left in setup register
+    i2c.blocking_write(ad, &[0x00, 0x17]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // right in setup register
-    // i2c.blocking_write(ad, &[0x02, 0x17]).unwrap();
-    // Timer::after_micros(10).await;
+    // right in setup register
+    i2c.blocking_write(ad, &[0x02, 0x17]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // left headphone out register
-    // i2c.blocking_write(ad, &[0x04, 0x79]).unwrap();
-    // Timer::after_micros(10).await;
+    // left headphone out register
+    i2c.blocking_write(ad, &[0x04, 0x79]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // right headphone out register
-    // i2c.blocking_write(ad, &[0x04, 0x79]).unwrap();
-    // Timer::after_micros(10).await;
+    // right headphone out register
+    i2c.blocking_write(ad, &[0x04, 0x79]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // digital audio path configuration
-    // i2c.blocking_write(ad, &[0x0a, 0x00]).unwrap();
-    // Timer::after_micros(10).await;
+    // digital audio path configuration
+    i2c.blocking_write(ad, &[0x0a, 0x00]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // analog audio pathway configuration
-    // const SIDEATT: u8 = 0;
-    // const SIDETONE: u8 = 0;
-    // const DACSEL: u8 = 1;
-    // const BYPASS: u8 = 1;
-    // const INSEL: u8 = 0;
-    // const MUTEMIC: u8 = 0;
-    // const MICBOOST: u8 = 0;
-    // let wm_an =  (SIDEATT << 6)|(SIDETONE << 5)|(DACSEL << 4)|(BYPASS << 3)|(INSEL << 2)|(MUTEMIC << 1)|(MICBOOST << 0);
-    // i2c.blocking_write(ad, &[0x08, wm_an]).unwrap();
-    // Timer::after_micros(10).await;
+    // analog audio pathway configuration
+    const SIDEATT: u8 = 0;
+    const SIDETONE: u8 = 0;
+    const DACSEL: u8 = 1;
+    const BYPASS: u8 = 1;
+    const INSEL: u8 = 0;
+    const MUTEMIC: u8 = 0;
+    const MICBOOST: u8 = 0;
+    let wm_an = (SIDEATT << 6)
+        | (SIDETONE << 5)
+        | (DACSEL << 4)
+        | (BYPASS << 3)
+        | (INSEL << 2)
+        | (MUTEMIC << 1)
+        | (MICBOOST << 0);
+    i2c.blocking_write(ad, &[0x08, wm_an]).unwrap();
+    Timer::after_micros(10).await;
 
-    // const USBNORMAL: u8 =0;
-    // const BOSR: u8 =0;
-    // const SR0: u8 =0;
-    // const SR1: u8 =0;
-    // const SR2: u8 =0;
-    // const SR3: u8 =0;
-    // const CLKDIV2: u8 =0;
-    // const CLKODIV2: u8 =0;
-    // let wm_smp = (CLKODIV2<<7)|(CLKDIV2<<6)|(SR3<<5)|(SR2<<4)|(SR1<<3)|(SR0<<2)|(BOSR<<1)|(USBNORMAL<<0);
-    // // WM8731 CORE CLOCK config
-    // i2c.blocking_write(ad, &[0x10, wm_smp]).unwrap();
-    // Timer::after_micros(10).await;
+    const USBNORMAL: u8 = 0;
+    const BOSR: u8 = 0;
+    const SR0: u8 = 0;
+    const SR1: u8 = 0;
+    const SR2: u8 = 0;
+    const SR3: u8 = 0;
+    const CLKDIV2: u8 = 0;
+    const CLKODIV2: u8 = 0;
+    let wm_smp = (CLKODIV2 << 7)
+        | (CLKDIV2 << 6)
+        | (SR3 << 5)
+        | (SR2 << 4)
+        | (SR1 << 3)
+        | (SR0 << 2)
+        | (BOSR << 1)
+        | (USBNORMAL << 0);
+    // WM8731 CORE CLOCK config
+    i2c.blocking_write(ad, &[0x10, wm_smp]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // LININ, CLKOUT power down
-    // i2c.blocking_write(ad, &[0x0c, 0x41]).unwrap();
-    // Timer::after_micros(10).await;
+    // LININ, CLKOUT power down
+    i2c.blocking_write(ad, &[0x0c, 0x41]).unwrap();
+    Timer::after_micros(10).await;
 
-    // // codec enable
-    // i2c.blocking_write(ad, &[0x12, 0x01]).unwrap();
-    // Timer::after_micros(10).await;
+    // codec enable
+    i2c.blocking_write(ad, &[0x12, 0x01]).unwrap();
+    Timer::after_micros(10).await;
 }
 
 const fn mclk_div_from_u8(v: u8) -> MasterClockDivider {
