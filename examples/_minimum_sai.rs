@@ -187,140 +187,117 @@ async fn main(spawner: Spawner) {
     spawner.spawn(execute(config)).unwrap();
 }
 
-//from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L381
-#[derive(Debug, Copy, Clone)]
-#[repr(u8)]
-enum Register {
-    Linvol = 0x00,
-    Rinvol = 0x01,
-    Lout1v = 0x02,
-    Rout1v = 0x03,
-    Apana = 0x04,
-    Apdigi = 0x05, // 0000_0101
-    Pwr = 0x06,
-    Iface = 0x07,  // 0000_0111
-    Srate = 0x08,  // 0000_1000
-    Active = 0x09, // 0000_1001
-    Reset = 0x0F,
-}
-const REGISTER_CONFIG: &[(Register, u8)] = &[
-    // reset Codec
-    (Register::Reset, 0x00),
-    // set line inputs 0dB
-    (Register::Linvol, 0x17),
-    (Register::Rinvol, 0x17),
-    // set headphone to mute
-    (Register::Lout1v, 0x00),
-    (Register::Rout1v, 0x00),
-    // set analog and digital routing
-    (Register::Apana, 0x12),
-    (Register::Apdigi, 0x01),
-    // configure power management
-    (Register::Pwr, 0x42),
-    // configure digital format
-    (Register::Iface, 0x0A),
-    // set samplerate
-    (Register::Srate, 0x00),
-    (Register::Active, 0x00),
-    (Register::Active, 0x01),
-];
-
 async fn setup_codecs_from_i2c(
     i2c2: hal::peripherals::I2C2,
     ph4: hal::peripherals::PH4,
     pb11: hal::peripherals::PB11,
 ) {
+    use wm8731::{power_down, WM8731};
     info!("setup codecs from I2C");
     let i2c_config = hal::i2c::Config::default();
     let mut i2c =
         embassy_stm32::i2c::I2c::new_blocking(i2c2, ph4, pb11, Hertz(100_000), i2c_config);
-    let ad: u8 = 0x1a; // or 0x1b if CSB is high
-                       // for (register, value) in REGISTER_CONFIG {
-                       //     let register = *register as u8;
-                       //     let value = *value;
-                       //     let byte1: u8 = ((register << 1) & 0b1111_1110) | ((value >> 7) & 0b0000_0001u8);
-                       //     let byte2: u8 = value;
-                       //     let bytes = [byte1, byte2];
 
-    //     i2c.blocking_write(ad, &bytes).unwrap();
-
-    //     // wait ~10us
-    //     Timer::after_micros(10).await;
-    // }
-
-    // from https://github.com/soundspotter/ArduinoUNO_AudioCodecMikroe506/blob/master/AudioCodec/AudioCodec.h
-    // power reduction register
-    // turn everything on
-    i2c.blocking_write(ad, &[0x0c, 0x00]).unwrap();
+    fn final_power_settings(w: &mut power_down::PowerDown) {
+        w.power_off().power_on();
+        w.clock_output().power_off();
+        w.oscillator().power_off();
+        w.output().power_on();
+        w.dac().power_on();
+        w.adc().power_on();
+        w.mic().power_off();
+        w.line_input().power_on();
+    }
+    fn write(i2c: &mut embassy_stm32::i2c::I2c<'static, hal::mode::Blocking>, r: wm8731::Register) {
+        const AD: u8 = 0x1a; // or 0x1b if CSB is high
+        let byte1: u8 = ((r.address << 1) & 0b1111_1110) | ((r.value as u8 >> 7) & 0b0000_0001u8);
+        i2c.blocking_write(AD, &[byte1, r.value.try_into().unwrap()])
+            .unwrap();
+    }
     Timer::after_micros(10).await;
 
-    i2c.blocking_write(ad, &[0x0e, 0x03]).unwrap();
+    // reset
+    write(&mut i2c, WM8731::reset());
     Timer::after_micros(10).await;
 
-    // left in setup register
-    i2c.blocking_write(ad, &[0x00, 0x17]).unwrap();
+    // wakeup
+    write(
+        &mut i2c,
+        WM8731::power_down(|w| {
+            final_power_settings(w);
+            //output off during initialization
+            w.output().power_off();
+        }),
+    );
     Timer::after_micros(10).await;
 
-    // right in setup register
-    i2c.blocking_write(ad, &[0x02, 0x17]).unwrap();
+    // disable input mute, set to 0dB gain
+    write(
+        &mut i2c,
+        WM8731::left_line_in(|w| {
+            w.both().disable();
+            w.mute().disable();
+            w.volume().nearest_dB(0);
+        }),
+    );
     Timer::after_micros(10).await;
 
-    // left headphone out register
-    i2c.blocking_write(ad, &[0x04, 0x79]).unwrap();
+    // sidetone off; DAC selected; bypass off; line input selected; mic muted; mic boost off
+    write(
+        &mut i2c,
+        WM8731::analog_audio_path(|w| {
+            w.sidetone().disable();
+            w.dac_select().select();
+            w.bypass().disable();
+            w.input_select().line_input();
+            w.mute_mic().enable();
+            w.mic_boost().disable();
+        }),
+    );
     Timer::after_micros(10).await;
 
-    // right headphone out register
-    i2c.blocking_write(ad, &[0x04, 0x79]).unwrap();
+    // disable DAC mute, deemphasis for 48k
+    write(
+        &mut i2c,
+        WM8731::digital_audio_path(|w| {
+            w.dac_mut().disable();
+            w.deemphasis().frequency_48();
+        }),
+    );
     Timer::after_micros(10).await;
 
-    // digital audio path configuration
-    i2c.blocking_write(ad, &[0x0a, 0x00]).unwrap();
+    // nothing inverted, slave, 32-bits, MSB format
+    write(
+        &mut i2c,
+        WM8731::digital_audio_interface_format(|w| {
+            w.bit_clock_invert().no_invert();
+            w.master_slave().slave();
+            w.left_right_dac_clock_swap().right_channel_dac_data_right();
+            w.left_right_phase().data_when_daclrc_low();
+            w.bit_length().bits_32();
+            w.format().right_justified();
+        }),
+    );
     Timer::after_micros(10).await;
 
-    // analog audio pathway configuration
-    const SIDEATT: u8 = 0;
-    const SIDETONE: u8 = 0;
-    const DACSEL: u8 = 1;
-    const BYPASS: u8 = 1;
-    const INSEL: u8 = 0;
-    const MUTEMIC: u8 = 0;
-    const MICBOOST: u8 = 0;
-    let wm_an = (SIDEATT << 6)
-        | (SIDETONE << 5)
-        | (DACSEL << 4)
-        | (BYPASS << 3)
-        | (INSEL << 2)
-        | (MUTEMIC << 1)
-        | (MICBOOST << 0);
-    i2c.blocking_write(ad, &[0x08, wm_an]).unwrap();
+    // no clock division, normal mode, 48k
+    write(
+        &mut i2c,
+        WM8731::sampling(|w| {
+            w.core_clock_divider_select().normal();
+            w.base_oversampling_rate().normal_256();
+            w.sample_rate().adc_48();
+            w.usb_normal().normal();
+        }),
+    );
     Timer::after_micros(10).await;
 
-    const USBNORMAL: u8 = 0;
-    const BOSR: u8 = 0;
-    const SR0: u8 = 0;
-    const SR1: u8 = 0;
-    const SR2: u8 = 0;
-    const SR3: u8 = 0;
-    const CLKDIV2: u8 = 0;
-    const CLKODIV2: u8 = 0;
-    let wm_smp = (CLKODIV2 << 7)
-        | (CLKDIV2 << 6)
-        | (SR3 << 5)
-        | (SR2 << 4)
-        | (SR1 << 3)
-        | (SR0 << 2)
-        | (BOSR << 1)
-        | (USBNORMAL << 0);
-    // WM8731 CORE CLOCK config
-    i2c.blocking_write(ad, &[0x10, wm_smp]).unwrap();
+    // set active
+    write(&mut i2c, WM8731::active().active());
     Timer::after_micros(10).await;
 
-    // LININ, CLKOUT power down
-    i2c.blocking_write(ad, &[0x0c, 0x41]).unwrap();
-    Timer::after_micros(10).await;
-
-    // codec enable
-    i2c.blocking_write(ad, &[0x12, 0x01]).unwrap();
+    // enable output
+    write(&mut i2c, WM8731::power_down(final_power_settings));
     Timer::after_micros(10).await;
 }
 
