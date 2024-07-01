@@ -208,9 +208,13 @@ async fn setup_codecs_from_i2c(
     }
     fn write(i2c: &mut embassy_stm32::i2c::I2c<'static, hal::mode::Blocking>, r: wm8731::Register) {
         const AD: u8 = 0x1a; // or 0x1b if CSB is high
-        let byte1: u8 = ((r.address << 1) & 0b1111_1110) | ((r.value as u8 >> 7) & 0b0000_0001u8);
-        i2c.blocking_write(AD, &[byte1, r.value.try_into().unwrap()])
-            .unwrap();
+
+        // WM8731 has 16 bits registers.
+        // The first 7 bits are for the addresses, and the rest 9 bits are for the "value"s.
+        // Let's pack wm8731::Register into 16 bits.
+        let byte1: u8 = ((r.address << 1) & 0b1111_1110) | (((r.value >> 8) & 0b0000_0001) as u8);
+        let byte2: u8 = (r.value & 0b1111_1111) as u8;
+        i2c.blocking_write(AD, &[byte1, byte2]).unwrap();
     }
     Timer::after_micros(10).await;
 
