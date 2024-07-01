@@ -39,13 +39,13 @@ static mut RX_BUFFER: GroundedArrayCell<u32, DMA_BUFFER_LENGTH> = GroundedArrayC
 #[embassy_executor::task]
 async fn execute(hal_config: hal::Config) {
     let p = hal::init(hal_config);
-    let (sub_block_rx, sub_block_tx) = hal::sai::split_subblocks(p.SAI1);
 
     //setup codecs via I2C before init SAI.
     //Once SAI is initiated, the bus will be occupied by it.
     setup_codecs_from_i2c(p.I2C2, p.PH4, p.PB11).await;
 
     info!("Starting SAI");
+    let (sub_block_rx, sub_block_tx) = hal::sai::split_subblocks(p.SAI1);
     let (tx_config, mut sai_transmitter) = {
         let tx_config = {
             let mut config = Config::default();
