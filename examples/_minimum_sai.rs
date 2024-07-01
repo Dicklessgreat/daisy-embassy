@@ -10,7 +10,11 @@ use embassy_stm32 as hal;
 use embassy_stm32::sai::{ClockStrobe, Config, MasterClockDivider, Sai};
 use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
+use hal::sai::BitOrder;
+use hal::sai::ComplementFormat;
 use hal::sai::DataSize;
+use hal::sai::FifoThreshold;
+use hal::sai::FrameSyncOffset;
 use hal::sai::FrameSyncPolarity;
 use hal::sai::Mode;
 use hal::sai::StereoMono;
@@ -48,16 +52,16 @@ async fn execute(hal_config: hal::Config) {
             config.data_size = DataSize::Data32;
             config.clock_strobe = ClockStrobe::Falling;
             config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+            config.fifo_threshold = FifoThreshold::Empty;
+            config.sync_output = false;
+            config.bit_order = BitOrder::MsbFirst;
+            config.complement_format = ComplementFormat::OnesComplement;
+            config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
             let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
             info!("kernel clock:{}", kernel_clock);
             let mclk_div = (kernel_clock / (48000 * 256)) as u8;
             info!("master clock divider:{}", mclk_div);
-            // config.mute_detection_counter = embassy_stm32::dma::word::U5(0);
             config.master_clock_divider = mclk_div_from_u8(mclk_div);
-            // config.clock_strobe = ClockStrobe::Falling;
-            // config.fifo_threshold = FifoThreshold::Empty;
-            // config.complement_format = ComplementFormat::OnesComplement;
-            // config.is_sync_output = true;
             config
         };
 
@@ -78,7 +82,7 @@ async fn execute(hal_config: hal::Config) {
             config.mode = Mode::Master;
             config.tx_rx = TxRx::Receiver;
             config.clock_strobe = ClockStrobe::Rising;
-            // config.is_sync_output = false;
+            config.sync_output = true;
             config
         };
         let rx_buffer: &mut [u32] = unsafe {
