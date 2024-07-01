@@ -110,9 +110,6 @@ async fn execute(hal_config: hal::Config) {
     sai_transmitter.start();
 
     let mut rx_signal = [0u32; HALF_DMA_BUFFER_LENGTH];
-    // const NUM_ITERATE: usize = 10;
-    // buffers to store received audio samples.
-    // let mut rx_signal_buf = [[0u32; HALF_DMA_BUFFER_LENGTH]; NUM_ITERATE];
 
     info!("enter audio loop");
     loop {
@@ -136,24 +133,7 @@ async fn execute(hal_config: hal::Config) {
                 warn!("Error reading from SAI: {:?}", e);
             }
         }
-
-        // for (i, value) in rx_signal.iter().enumerate() {
-        //     if *value != signal[i] {
-        //         info!("[{}]: {} != {}", i, value, signal[i]); //we don't want to see this
-        //         break;
-        //     }
-        // }
-        // *buf = rx_signal;
     }
-
-    // for buf in rx_signal_buf {
-    //     info!("{}", buf);
-    //     // printing each rx_signal_buf costs too much.
-    //     // let's prevent print-out buffer from overflowing.
-    //     Timer::after(Duration::from_secs(1)).await;
-    // }
-
-    // info!("finished execution");
 }
 
 #[embassy_executor::main]
