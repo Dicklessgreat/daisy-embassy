@@ -1,5 +1,5 @@
 use crate::pins::WM8731Pins;
-use defmt::debug;
+use defmt::info;
 use embassy_stm32 as hal;
 use embassy_sync::{
     blocking_mutex::raw::NoopRawMutex,
@@ -7,6 +7,10 @@ use embassy_sync::{
 };
 use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
+use hal::sai::BitOrder;
+use hal::sai::ComplementFormat;
+use hal::sai::FifoThreshold;
+use hal::sai::FrameSyncOffset;
 use hal::{
     peripherals,
     sai::{
@@ -102,25 +106,38 @@ impl Default for AudioConfig {
 }
 
 impl<'a> Interface<'a> {
-    pub fn new(
+    pub async fn new(
         wm8731: WM8731Pins,
         p: Peripherals,
-        config: AudioConfig,
+        audio_config: AudioConfig,
     ) -> (Self, AudioBlockBuffers) {
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
 
-        debug!("set up sai_tx");
-        // I have no idea how to set up SAI! WIP
-        let mut sai_tx_conf = Config::default();
-        sai_tx_conf.mode = Mode::Slave;
-        sai_tx_conf.tx_rx = TxRx::Transmitter;
-        sai_tx_conf.stereo_mono = StereoMono::Stereo;
-        sai_tx_conf.data_size = DataSize::Data24;
-        sai_tx_conf.clock_strobe = ClockStrobe::Falling;
-        sai_tx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-        sai_tx_conf.master_clock_divider = config.tx_fs.into_clock_divider();
-        // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
-        // sai_tx_conf.complement_format = ComplementFormat::OnesComplement;
+        info!("set up i2c");
+        let i2c_config = hal::i2c::Config::default();
+        let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
+            p.i2c2, wm8731.SCL, wm8731.SDA, I2C_FS, i2c_config,
+        );
+        info!("set up WM8731");
+        setup_wm8731(&mut i2c).await;
+
+        info!("set up sai_tx");
+        let sai_tx_conf = {
+            let mut config = Config::default();
+            config.mode = Mode::Slave;
+            config.tx_rx = TxRx::Transmitter;
+            config.stereo_mono = StereoMono::Stereo;
+            config.data_size = DataSize::Data24;
+            config.clock_strobe = ClockStrobe::Falling;
+            config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+            config.fifo_threshold = FifoThreshold::Empty;
+            config.sync_output = false;
+            config.bit_order = BitOrder::MsbFirst;
+            config.complement_format = ComplementFormat::OnesComplement;
+            config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
+            config.master_clock_divider = audio_config.tx_fs.into_clock_divider();
+            config
+        };
         let tx_buffer: &mut [u32] = unsafe {
             TX_BUFFER.initialize_all_copied(0);
             let (ptr, len) = TX_BUFFER.get_ptr_len();
@@ -134,18 +151,18 @@ impl<'a> Interface<'a> {
             sai_tx_conf,
         );
 
-        debug!("set up sai_rx");
-        // I have no idea how to set up SAI! WIP
-        let mut sai_rx_conf = Config::default();
-        sai_rx_conf.tx_rx = TxRx::Receiver;
-        sai_rx_conf.mode = Mode::Master;
-        sai_rx_conf.stereo_mono = StereoMono::Stereo;
-        sai_rx_conf.data_size = DataSize::Data24;
-        sai_rx_conf.clock_strobe = ClockStrobe::Rising;
-        sai_rx_conf.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-        sai_rx_conf.master_clock_divider = config.rx_fs.into_clock_divider();
-        // stm32h7xx-hal set complement format as "Ones" by default. But I don't know this matters or not.
-        // sai_rx_conf.complement_format = ComplementFormat::OnesComplement;
+        info!("set up sai_rx");
+        let sai_rx_conf = {
+            //copy tx configuration
+            let mut config = sai_tx_conf;
+            //fix rx only configuration
+            config.mode = Mode::Master;
+            config.tx_rx = TxRx::Receiver;
+            config.clock_strobe = ClockStrobe::Rising;
+            config.sync_output = true;
+            config.master_clock_divider = audio_config.rx_fs.into_clock_divider();
+            config
+        };
         let rx_buffer: &mut [u32] = unsafe {
             RX_BUFFER.initialize_all_copied(0);
             let (ptr, len) = RX_BUFFER.get_ptr_len();
@@ -160,12 +177,6 @@ impl<'a> Interface<'a> {
             p.dma1_ch2,
             rx_buffer,
             sai_rx_conf,
-        );
-
-        debug!("set up i2c");
-        let i2c_config = hal::i2c::Config::default();
-        let i2c = embassy_stm32::i2c::I2c::new_blocking(
-            p.i2c2, wm8731.SCL, wm8731.SDA, I2C_FS, i2c_config,
         );
 
         static TO_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
@@ -196,35 +207,19 @@ impl<'a> Interface<'a> {
         )
     }
     pub async fn start(&mut self) -> ! {
-        debug!("let's set up audio callback");
-        // - set up WM8731 ------------------------------------------------------
-        // from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L234C9-L235C1
-        debug!("first, set up WM8731");
-        let codec_i2c_address: u8 = 0x1a; // or 0x1b if CSB is high
+        info!("let's set up audio callback");
+        info!("enable WM8731 output");
+        write_wm8731_reg(
+            &mut self.i2c,
+            wm8731::WM8731::power_down(final_power_settings),
+        );
+        Timer::after_micros(10).await;
 
-        // Go through configuration setup
-        for (register, value) in REGISTER_CONFIG {
-            let register = *register as u8;
-            let value = *value;
-            let byte1: u8 = ((register << 1) & 0b1111_1110) | ((value >> 7) & 0b0000_0001u8);
-            let byte2: u8 = value;
-            let bytes = [byte1, byte2];
-
-            self.i2c.blocking_write(codec_i2c_address, &bytes).unwrap();
-
-            // wait ~10us
-            Timer::after_micros(10).await;
-            debug!("sent a packet via i2c...");
-        }
-
-        // - start audio ------------------------------------------------------
-        debug!("let's start SAI");
+        info!("start SAI");
         self.sai_tx.start();
         self.sai_rx.start();
-        // in daisy_bsp/src/audio.rs...Interface::start(), it waits untill sai1's fifo starts to receive data.
-        // I don't know how to get fifo state in embassy.
 
-        debug!("enter audio callback loop");
+        info!("enter audio callback loop");
         loop {
             // todo...debug! macros are because currently this audio callback cause deadlock.
             // they should be removed after audio callback works fine
@@ -255,43 +250,117 @@ impl<'a> Interface<'a> {
     }
 }
 
-//from https://github.com/backtail/daisy_bsp/blob/b7b80f78dafc837b90e97a265d2a3378094b84f7/src/audio.rs#L381
-#[derive(Debug, Copy, Clone)]
-#[repr(u8)]
-enum Register {
-    Linvol = 0x00,
-    Rinvol = 0x01,
-    Lout1v = 0x02,
-    Rout1v = 0x03,
-    Apana = 0x04,
-    Apdigi = 0x05, // 0000_0101
-    Pwr = 0x06,
-    Iface = 0x07,  // 0000_0111
-    Srate = 0x08,  // 0000_1000
-    Active = 0x09, // 0000_1001
-    Reset = 0x0F,
+//====================wm8731 register set up functions============================
+async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>) {
+    use wm8731::WM8731;
+    info!("setup wm8731 from I2C");
+
+    Timer::after_micros(10).await;
+
+    // reset
+    write_wm8731_reg(i2c, WM8731::reset());
+    Timer::after_micros(10).await;
+
+    // wakeup
+    write_wm8731_reg(
+        i2c,
+        WM8731::power_down(|w| {
+            final_power_settings(w);
+            //output off before start()
+            w.output().power_off();
+        }),
+    );
+    Timer::after_micros(10).await;
+
+    // disable input mute, set to 0dB gain
+    write_wm8731_reg(
+        i2c,
+        WM8731::left_line_in(|w| {
+            w.both().enable();
+            w.mute().disable();
+            w.volume().nearest_dB(0);
+        }),
+    );
+    Timer::after_micros(10).await;
+
+    // sidetone off; DAC selected; bypass off; line input selected; mic muted; mic boost off
+    write_wm8731_reg(
+        i2c,
+        WM8731::analog_audio_path(|w| {
+            w.sidetone().disable();
+            w.dac_select().select();
+            w.bypass().disable();
+            w.input_select().line_input();
+            w.mute_mic().enable();
+            w.mic_boost().disable();
+        }),
+    );
+    Timer::after_micros(10).await;
+
+    // disable DAC mute, deemphasis for 48k
+    write_wm8731_reg(
+        i2c,
+        WM8731::digital_audio_path(|w| {
+            w.dac_mut().disable();
+            w.deemphasis().frequency_48();
+        }),
+    );
+    Timer::after_micros(10).await;
+
+    // nothing inverted, slave, 32-bits, MSB format
+    write_wm8731_reg(
+        i2c,
+        WM8731::digital_audio_interface_format(|w| {
+            w.bit_clock_invert().no_invert();
+            w.master_slave().slave();
+            w.left_right_dac_clock_swap().right_channel_dac_data_right();
+            w.left_right_phase().data_when_daclrc_low();
+            w.bit_length().bits_24();
+            w.format().left_justified();
+        }),
+    );
+    Timer::after_micros(10).await;
+
+    // no clock division, normal mode, 48k
+    write_wm8731_reg(
+        i2c,
+        WM8731::sampling(|w| {
+            w.core_clock_divider_select().normal();
+            w.base_oversampling_rate().normal_256();
+            w.sample_rate().adc_48();
+            w.usb_normal().normal();
+        }),
+    );
+    Timer::after_micros(10).await;
+
+    // set active
+    write_wm8731_reg(i2c, WM8731::active().active());
+    Timer::after_micros(10).await;
+
+    //Note: WM8731's output not yet enabled.
 }
-const REGISTER_CONFIG: &[(Register, u8)] = &[
-    // reset Codec
-    (Register::Reset, 0x00),
-    // set line inputs 0dB
-    (Register::Linvol, 0x17),
-    (Register::Rinvol, 0x17),
-    // set headphone to mute
-    (Register::Lout1v, 0x00),
-    (Register::Rout1v, 0x00),
-    // set analog and digital routing
-    (Register::Apana, 0x12),
-    (Register::Apdigi, 0x01),
-    // configure power management
-    (Register::Pwr, 0x42),
-    // configure digital format
-    (Register::Iface, 0x0A),
-    // set samplerate
-    (Register::Srate, 0x00),
-    (Register::Active, 0x00),
-    (Register::Active, 0x01),
-];
+fn write_wm8731_reg(i2c: &mut hal::i2c::I2c<'_, hal::mode::Blocking>, r: wm8731::Register) {
+    const AD: u8 = 0x1a; // or 0x1b if CSB is high
+
+    // WM8731 has 16 bits registers.
+    // The first 7 bits are for the addresses, and the rest 9 bits are for the "value"s.
+    // Let's pack wm8731::Register into 16 bits.
+    let byte1: u8 = ((r.address << 1) & 0b1111_1110) | (((r.value >> 8) & 0b0000_0001) as u8);
+    let byte2: u8 = (r.value & 0b1111_1111) as u8;
+    i2c.blocking_write(AD, &[byte1, byte2]).unwrap();
+}
+fn final_power_settings(w: &mut wm8731::power_down::PowerDown) {
+    w.power_off().power_on();
+    w.clock_output().power_off();
+    w.oscillator().power_off();
+    w.output().power_on();
+    w.dac().power_on();
+    w.adc().power_on();
+    w.mic().power_off();
+    w.line_input().power_on();
+}
+
+//================================================
 
 const fn mclk_div_from_u8(v: u8) -> MasterClockDivider {
     match v {

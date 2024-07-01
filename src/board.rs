@@ -33,9 +33,10 @@ pub struct DaisyPeripherals {
 }
 
 impl<'a> DaisyBoard<'a> {
-    pub fn new(p: DaisyPeripherals, audio_config: AudioConfig) -> (Self, AudioBlockBuffers) {
+    pub async fn new(p: DaisyPeripherals, audio_config: AudioConfig) -> (Self, AudioBlockBuffers) {
         let usb_driver = crate::usb::init(p.usb_otg_fs, p.usb2_pins);
-        let (interface, buffers) = Interface::new(p.wm8731_pin, p.audio_peripherals, audio_config);
+        let (interface, buffers) =
+            Interface::new(p.wm8731_pin, p.audio_peripherals, audio_config).await;
         (
             Self {
                 daisy_pins: p.daisy_pins,

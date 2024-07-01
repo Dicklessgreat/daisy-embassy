@@ -13,6 +13,7 @@ embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", features = [
 static_cell = "2.1.0"
 defmt = "0.3.8"
 grounded = "0.2.0"
+wm8731 = "0.1.0"
 
 [dev_dependencies]
 cortex-m = { version = "0.7.6", features = ["inline-asm", "critical-section-single-core"] }
@@ -22,7 +23,6 @@ defmt-rtt = "0.4.1"
 panic-probe = { version = "0.3.2", features = ["print-defmt"] }
 embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
 embassy-futures = { git = "https://github.com/embassy-rs/embassy.git" }
-wm8731 = "0.1.0"
 
 
 [profile.release]

@@ -53,7 +53,7 @@ async fn main(_spawner: Spawner) {
     let p = hal::init(config);
     let daisy_p = new_daisy_p!(p);
     let (board, (mut to_interface, mut from_interface)) =
-        DaisyBoard::new(daisy_p, Default::default());
+        DaisyBoard::new(daisy_p, Default::default()).await;
     let mut interface = board.interface;
 
     let interface_fut = async { interface.start().await };
