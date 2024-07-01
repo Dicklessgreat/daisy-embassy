@@ -35,8 +35,6 @@ async fn execute(hal_config: hal::Config) {
     let p = hal::init(hal_config);
     let (sub_block_rx, sub_block_tx) = hal::sai::split_subblocks(p.SAI1);
 
-    Timer::after(Duration::from_secs(2)).await;
-
     //setup codecs via I2C before init SAI.
     //Once SAI is initiated, the bus will be occupied by it.
     setup_codecs_from_i2c(p.I2C2, p.PH4, p.PB11).await;
