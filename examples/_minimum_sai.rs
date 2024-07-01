@@ -8,7 +8,6 @@ use defmt_rtt as _;
 use embassy_executor::Spawner;
 use embassy_stm32 as hal;
 use embassy_stm32::sai::{ClockStrobe, Config, MasterClockDivider, Sai};
-use embassy_time::Duration;
 use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
 use hal::sai::DataSize;
