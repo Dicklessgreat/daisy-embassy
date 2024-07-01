@@ -241,7 +241,7 @@ async fn setup_codecs_from_i2c(
     write(
         &mut i2c,
         WM8731::left_line_in(|w| {
-            w.both().disable();
+            w.both().enable();
             w.mute().disable();
             w.volume().nearest_dB(0);
         }),
