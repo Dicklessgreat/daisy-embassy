@@ -11,8 +11,8 @@ use daisy_embassy::{
 use defmt::debug;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
-use hal::gpio::Input;
-use hal::gpio::Pull;
+use hal::{adc::Adc, gpio::Input};
+use hal::{adc::SampleTime, gpio::Pull};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -33,6 +33,14 @@ async fn main(_spawner: Spawner) {
             divq: Some(PllDiv::DIV8),
             divr: None,
         });
+        config.rcc.pll2 = Some(Pll {
+            source: PllSource::HSI,
+            prediv: PllPreDiv::DIV4,
+            mul: PllMul::MUL50,
+            divp: Some(PllDiv::DIV8), // 100mhz
+            divq: None,
+            divr: None,
+        });
         config.rcc.sys = Sysclk::PLL1_P; // 400 Mhz
         config.rcc.ahb_pre = AHBPrescaler::DIV2; // 200 Mhz
         config.rcc.apb1_pre = APBPrescaler::DIV2; // 100 Mhz
@@ -43,10 +51,8 @@ async fn main(_spawner: Spawner) {
         config.rcc.hse = Some(Hse {
             freq: Hertz::mhz(16),
             mode: HseMode::Oscillator,
-        })
-        //default as PLL1_Q?
-        //use hal::pac::rcc::vals::Saisel;
-        //config.rcc.mux.sai1sel = Saisel::PLL1_Q;
+        });
+        config.rcc.mux.adcsel = mux::Adcsel::PLL2_P;
     }
 
     let p = hal::init(config);
@@ -55,6 +61,9 @@ async fn main(_spawner: Spawner) {
         DaisyBoard::new(daisy_p, Default::default()).await;
     let mut interface = board.interface;
     let mute = Input::new(board.daisy_pins.SEED_PIN_15, Pull::Up);
+    let mut adc = Adc::new(p.ADC1);
+    adc.set_sample_time(SampleTime::CYCLES32_5);
+    let mut adc_pin = board.daisy_pins.SEED_PIN_16;
 
     let interface_fut = async { interface.start().await };
 
@@ -67,8 +76,10 @@ async fn main(_spawner: Spawner) {
             from_interface.receive().await;
             from_interface.receive_done();
 
+            //adc_value takes values from 50 to 600
+            let adc_value = (adc.read(&mut adc_pin) / (u16::MAX / 550) + 50) as u32;
             for chunk in buf.chunks_mut(2) {
-                let smp = make_triangle_wave(smp_pos % 120, 120);
+                let smp = make_triangle_wave(smp_pos % adc_value, adc_value);
                 if mute.is_high() {
                     chunk[0] = smp;
                     chunk[1] = smp;
