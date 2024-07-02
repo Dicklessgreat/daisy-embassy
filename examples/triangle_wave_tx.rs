@@ -11,9 +11,35 @@ use daisy_embassy::{
 use defmt::debug;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
-use hal::{adc::Adc, gpio::Input};
-use hal::{adc::SampleTime, gpio::Pull};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
+use embassy_time::Timer;
+use hal::gpio::Pull;
+use hal::{exti::ExtiInput, gpio::Input};
 use {defmt_rtt as _, panic_probe as _};
+
+#[derive(Clone, Copy)]
+enum WaveFrequency {
+    High,
+    Middle,
+    Low,
+}
+
+impl WaveFrequency {
+    fn as_period(&self) -> u32 {
+        match self {
+            Self::High => 60,
+            Self::Middle => 200,
+            Self::Low => 400,
+        }
+    }
+    fn next(&mut self) {
+        match self {
+            Self::High => *self = Self::Middle,
+            Self::Middle => *self = Self::Low,
+            Self::Low => *self = Self::High,
+        }
+    }
+}
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -61,25 +87,36 @@ async fn main(_spawner: Spawner) {
         DaisyBoard::new(daisy_p, Default::default()).await;
     let mut interface = board.interface;
     let mute = Input::new(board.daisy_pins.SEED_PIN_15, Pull::Up);
-    let mut adc = Adc::new(p.ADC1);
-    adc.set_sample_time(SampleTime::CYCLES32_5);
-    let mut adc_pin = board.daisy_pins.SEED_PIN_16;
+    let mut change_freq = ExtiInput::new(board.daisy_pins.SEED_PIN_16, p.EXTI3, Pull::Up);
+    let freq_queue: Channel<CriticalSectionRawMutex, (), 4> = Channel::new();
+    let freq_sender = freq_queue.sender();
+    let freq_receiver = freq_queue.receiver();
 
+    let change_freq_fut = async {
+        loop {
+            change_freq.wait_for_low().await;
+            freq_sender.send(()).await;
+            Timer::after_millis(30).await;
+        }
+    };
     let interface_fut = async { interface.start().await };
 
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
         let mut smp_pos = 0;
+        let mut freq = WaveFrequency::Middle;
         loop {
             //Receive buffer and discard all
             //This step is necessary for the audio callback to proceed.
             from_interface.receive().await;
             from_interface.receive_done();
 
-            //adc_value takes values from 50 to 600
-            let adc_value = (adc.read(&mut adc_pin) / (u16::MAX / 550) + 50) as u32;
+            if freq_receiver.try_receive().is_ok() {
+                freq.next();
+            }
+            let period = freq.as_period();
             for chunk in buf.chunks_mut(2) {
-                let smp = make_triangle_wave(smp_pos % adc_value, adc_value);
+                let smp = make_triangle_wave(smp_pos % period, period);
                 if mute.is_high() {
                     chunk[0] = smp;
                     chunk[1] = smp;
@@ -95,7 +132,7 @@ async fn main(_spawner: Spawner) {
             to_interface.send_done();
         }
     };
-    join(interface_fut, audio_callback_fut).await;
+    join(change_freq_fut, join(interface_fut, audio_callback_fut)).await;
 }
 
 const fn make_triangle_wave(pos: u32, period_smp: u32) -> u32 {
