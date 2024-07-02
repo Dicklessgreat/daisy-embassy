@@ -62,8 +62,8 @@ macro_rules! new_daisy_boad {
                 dma1_ch1: $p.DMA1_CH1,
                 dma1_ch2: $p.DMA1_CH2,
             },
-            FMC: (),
-            SDRAM: (),
+            fmc: (),
+            sdram: (),
             usb_peripherals: daisy_embassy::usb::UsbPeripherals {
                 pins: USB2Pins {
                     DN: $p.PA11,
