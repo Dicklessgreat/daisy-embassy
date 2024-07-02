@@ -11,14 +11,13 @@ bind_interrupts!(pub struct Irqs {
     I2C2_ER => i2c::ErrorInterruptHandler<peripherals::I2C2>;
 });
 
-#[allow(non_snake_case)]
 pub struct DaisyBoard<'a> {
     pub pins: DaisyPins,
     // board peripherals
     pub user_led: UserLed<'a>,
     pub audio_peripherals: AudioPeripherals,
-    pub FMC: (),   //TODO
-    pub SDRAM: (), // TODO
+    pub fmc: (),   //TODO
+    pub sdram: (), // TODO
     pub usb_peripherals: UsbPeripherals,
     // on board "BOOT" button.
     pub boot: Boot,
