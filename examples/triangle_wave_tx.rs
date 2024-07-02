@@ -83,9 +83,11 @@ async fn main(_spawner: Spawner) {
 
     let p = hal::init(config);
     let daisy_p = new_daisy_p!(p);
-    let (board, (mut to_interface, mut from_interface)) =
-        DaisyBoard::new(daisy_p, Default::default()).await;
-    let mut interface = board.interface;
+    let board = DaisyBoard::new(daisy_p);
+    let (mut interface, (mut to_interface, mut from_interface)) = board
+        .audio_peripherals
+        .prepare_interface(Default::default())
+        .await;
     let mute = Input::new(board.pins.d15, Pull::Up);
     let mut change_freq = ExtiInput::new(board.pins.d16, p.EXTI3, Pull::Up);
     let freq_queue: Channel<CriticalSectionRawMutex, (), 4> = Channel::new();

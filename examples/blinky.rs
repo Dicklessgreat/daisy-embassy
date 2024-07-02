@@ -13,7 +13,7 @@ use {defmt_rtt as _, panic_probe as _};
 async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
     info!("Hello World!");
-    let daisy_p = DaisyBoard::new(new_daisy_p!(p), Default::default()).await.0;
+    let daisy_p = DaisyBoard::new(new_daisy_p!(p));
     let mut led = daisy_p.user_led;
 
     loop {

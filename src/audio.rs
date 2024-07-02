@@ -43,21 +43,118 @@ pub type AudioBlockBuffers = (
     Receiver<'static, NoopRawMutex, InterleavedBlock>,
 );
 
-pub struct Interface<'a> {
-    sai_tx_conf: sai::Config,
-    sai_rx_conf: sai::Config,
-    sai_tx: Sai<'a, peripherals::SAI1, u32>,
-    sai_rx: Sai<'a, peripherals::SAI1, u32>,
-    i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
-    to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
-    from_client: Receiver<'static, NoopRawMutex, InterleavedBlock>,
-}
-
-pub struct Peripherals {
+pub struct AudioPeripherals {
+    pub wm8731: WM8731Pins,
     pub sai1: hal::peripherals::SAI1,
     pub i2c2: hal::peripherals::I2C2,
     pub dma1_ch1: hal::peripherals::DMA1_CH1,
     pub dma1_ch2: hal::peripherals::DMA1_CH2,
+}
+
+impl AudioPeripherals {
+    pub async fn prepare_interface<'a>(
+        self,
+        audio_config: AudioConfig,
+    ) -> (Interface<'a>, AudioBlockBuffers) {
+        info!("set up i2c");
+        let i2c_config = hal::i2c::Config::default();
+        let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
+            self.i2c2,
+            self.wm8731.SCL,
+            self.wm8731.SDA,
+            I2C_FS,
+            i2c_config,
+        );
+        info!("set up WM8731");
+        setup_wm8731(&mut i2c).await;
+
+        info!("set up sai_tx");
+        let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(self.sai1);
+
+        let sai_tx_conf = {
+            let mut config = Config::default();
+            config.mode = Mode::Slave;
+            config.tx_rx = TxRx::Transmitter;
+            config.stereo_mono = StereoMono::Stereo;
+            config.data_size = DataSize::Data24;
+            config.clock_strobe = ClockStrobe::Falling;
+            config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+            config.fifo_threshold = FifoThreshold::Empty;
+            config.sync_output = false;
+            config.bit_order = BitOrder::MsbFirst;
+            config.complement_format = ComplementFormat::OnesComplement;
+            config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
+            config.master_clock_divider = audio_config.tx_fs.into_clock_divider();
+            config
+        };
+        let tx_buffer: &mut [u32] = unsafe {
+            TX_BUFFER.initialize_all_copied(0);
+            let (ptr, len) = TX_BUFFER.get_ptr_len();
+            core::slice::from_raw_parts_mut(ptr, len)
+        };
+        let sai_tx = hal::sai::Sai::new_synchronous(
+            sub_block_transmitter,
+            self.wm8731.SD_B,
+            self.dma1_ch1,
+            tx_buffer,
+            sai_tx_conf,
+        );
+
+        info!("set up sai_rx");
+        let sai_rx_conf = {
+            //copy tx configuration
+            let mut config = sai_tx_conf;
+            //fix rx only configuration
+            config.mode = Mode::Master;
+            config.tx_rx = TxRx::Receiver;
+            config.clock_strobe = ClockStrobe::Rising;
+            config.sync_output = true;
+            config.master_clock_divider = audio_config.rx_fs.into_clock_divider();
+            config
+        };
+        let rx_buffer: &mut [u32] = unsafe {
+            RX_BUFFER.initialize_all_copied(0);
+            let (ptr, len) = RX_BUFFER.get_ptr_len();
+            core::slice::from_raw_parts_mut(ptr, len)
+        };
+        let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
+            sub_block_receiver,
+            self.wm8731.SCK_A,
+            self.wm8731.SD_A,
+            self.wm8731.FS_A,
+            self.wm8731.MCLK_A,
+            self.dma1_ch2,
+            rx_buffer,
+            sai_rx_conf,
+        );
+
+        static TO_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
+        let to_interface_buf = TO_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
+        static TO_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
+            StaticCell::new();
+        let (client_to_if_tx, client_to_if_rx) =
+            TO_INTERFACE.init(Channel::new(to_interface_buf)).split();
+        static FROM_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
+        let from_interface_buf = FROM_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
+        static FROM_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
+            StaticCell::new();
+        let (if_to_client_tx, if_to_client_rx) = FROM_INTERFACE
+            .init(Channel::new(from_interface_buf))
+            .split();
+
+        (
+            Interface {
+                sai_rx_conf,
+                sai_tx_conf,
+                sai_rx,
+                sai_tx,
+                i2c,
+                to_client: if_to_client_tx,
+                from_client: client_to_if_rx,
+            },
+            (client_to_if_tx, if_to_client_rx),
+        )
+    }
 }
 
 pub enum Fs {
@@ -105,107 +202,17 @@ impl Default for AudioConfig {
     }
 }
 
+pub struct Interface<'a> {
+    sai_tx_conf: sai::Config,
+    sai_rx_conf: sai::Config,
+    sai_tx: Sai<'a, peripherals::SAI1, u32>,
+    sai_rx: Sai<'a, peripherals::SAI1, u32>,
+    i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
+    to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
+    from_client: Receiver<'static, NoopRawMutex, InterleavedBlock>,
+}
+
 impl<'a> Interface<'a> {
-    pub async fn new(
-        wm8731: WM8731Pins,
-        p: Peripherals,
-        audio_config: AudioConfig,
-    ) -> (Self, AudioBlockBuffers) {
-        let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(p.sai1);
-
-        info!("set up i2c");
-        let i2c_config = hal::i2c::Config::default();
-        let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
-            p.i2c2, wm8731.SCL, wm8731.SDA, I2C_FS, i2c_config,
-        );
-        info!("set up WM8731");
-        setup_wm8731(&mut i2c).await;
-
-        info!("set up sai_tx");
-        let sai_tx_conf = {
-            let mut config = Config::default();
-            config.mode = Mode::Slave;
-            config.tx_rx = TxRx::Transmitter;
-            config.stereo_mono = StereoMono::Stereo;
-            config.data_size = DataSize::Data24;
-            config.clock_strobe = ClockStrobe::Falling;
-            config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-            config.fifo_threshold = FifoThreshold::Empty;
-            config.sync_output = false;
-            config.bit_order = BitOrder::MsbFirst;
-            config.complement_format = ComplementFormat::OnesComplement;
-            config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
-            config.master_clock_divider = audio_config.tx_fs.into_clock_divider();
-            config
-        };
-        let tx_buffer: &mut [u32] = unsafe {
-            TX_BUFFER.initialize_all_copied(0);
-            let (ptr, len) = TX_BUFFER.get_ptr_len();
-            core::slice::from_raw_parts_mut(ptr, len)
-        };
-        let sai_tx = hal::sai::Sai::new_synchronous(
-            sub_block_transmitter,
-            wm8731.SD_B,
-            p.dma1_ch1,
-            tx_buffer,
-            sai_tx_conf,
-        );
-
-        info!("set up sai_rx");
-        let sai_rx_conf = {
-            //copy tx configuration
-            let mut config = sai_tx_conf;
-            //fix rx only configuration
-            config.mode = Mode::Master;
-            config.tx_rx = TxRx::Receiver;
-            config.clock_strobe = ClockStrobe::Rising;
-            config.sync_output = true;
-            config.master_clock_divider = audio_config.rx_fs.into_clock_divider();
-            config
-        };
-        let rx_buffer: &mut [u32] = unsafe {
-            RX_BUFFER.initialize_all_copied(0);
-            let (ptr, len) = RX_BUFFER.get_ptr_len();
-            core::slice::from_raw_parts_mut(ptr, len)
-        };
-        let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
-            sub_block_receiver,
-            wm8731.SCK_A,
-            wm8731.SD_A,
-            wm8731.FS_A,
-            wm8731.MCLK_A,
-            p.dma1_ch2,
-            rx_buffer,
-            sai_rx_conf,
-        );
-
-        static TO_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
-        let to_interface_buf = TO_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
-        static TO_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
-            StaticCell::new();
-        let (client_to_if_tx, client_to_if_rx) =
-            TO_INTERFACE.init(Channel::new(to_interface_buf)).split();
-        static FROM_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
-        let from_interface_buf = FROM_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
-        static FROM_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
-            StaticCell::new();
-        let (if_to_client_tx, if_to_client_rx) = FROM_INTERFACE
-            .init(Channel::new(from_interface_buf))
-            .split();
-
-        (
-            Self {
-                sai_rx_conf,
-                sai_tx_conf,
-                sai_rx,
-                sai_tx,
-                i2c,
-                to_client: if_to_client_tx,
-                from_client: client_to_if_rx,
-            },
-            (client_to_if_tx, if_to_client_rx),
-        )
-    }
     pub async fn start(&mut self) -> ! {
         info!("let's set up audio callback");
         info!("enable WM8731 output");

@@ -46,16 +46,17 @@ macro_rules! new_daisy_p {
                 d30: $p.PB15,
             },
             led_user_pin: $p.PC7,
-            wm8731_pin: WM8731Pins {
-                SCL: $p.PH4,
-                SDA: $p.PB11,
-                MCLK_A: $p.PE2,
-                SCK_A: $p.PE5,
-                FS_A: $p.PE4,
-                SD_A: $p.PE6,
-                SD_B: $p.PE3,
-            },
-            audio_peripherals: daisy_embassy::audio::Peripherals {
+
+            audio_peripherals: daisy_embassy::audio::AudioPeripherals {
+                wm8731: WM8731Pins {
+                    SCL: $p.PH4,
+                    SDA: $p.PB11,
+                    MCLK_A: $p.PE2,
+                    SCK_A: $p.PE5,
+                    FS_A: $p.PE4,
+                    SD_A: $p.PE6,
+                    SD_B: $p.PE3,
+                },
                 sai1: $p.SAI1,
                 i2c2: $p.I2C2,
                 dma1_ch1: $p.DMA1_CH1,
