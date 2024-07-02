@@ -49,8 +49,8 @@ pub struct Interface<'a> {
     sai_tx: Sai<'a, peripherals::SAI1, u32>,
     sai_rx: Sai<'a, peripherals::SAI1, u32>,
     i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
-    pub to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
-    pub from_client: Receiver<'static, NoopRawMutex, InterleavedBlock>,
+    to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
+    from_client: Receiver<'static, NoopRawMutex, InterleavedBlock>,
 }
 
 pub struct Peripherals {
