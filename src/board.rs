@@ -13,7 +13,7 @@ bind_interrupts!(pub struct Irqs {
 
 #[allow(non_snake_case)]
 pub struct DaisyBoard<'a> {
-    pub daisy_pins: DaisyPins,
+    pub pins: DaisyPins,
 
     // board peripherals
     pub user_led: UserLed<'a>,
@@ -39,7 +39,7 @@ impl<'a> DaisyBoard<'a> {
             Interface::new(p.wm8731_pin, p.audio_peripherals, audio_config).await;
         (
             Self {
-                daisy_pins: p.daisy_pins,
+                pins: p.daisy_pins,
                 user_led: UserLed::new(p.led_user_pin),
                 interface,
                 FMC: (),

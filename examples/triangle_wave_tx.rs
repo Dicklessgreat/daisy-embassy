@@ -86,8 +86,8 @@ async fn main(_spawner: Spawner) {
     let (board, (mut to_interface, mut from_interface)) =
         DaisyBoard::new(daisy_p, Default::default()).await;
     let mut interface = board.interface;
-    let mute = Input::new(board.daisy_pins.SEED_PIN_15, Pull::Up);
-    let mut change_freq = ExtiInput::new(board.daisy_pins.SEED_PIN_16, p.EXTI3, Pull::Up);
+    let mute = Input::new(board.pins.d15, Pull::Up);
+    let mut change_freq = ExtiInput::new(board.pins.d16, p.EXTI3, Pull::Up);
     let freq_queue: Channel<CriticalSectionRawMutex, (), 4> = Channel::new();
     let freq_sender = freq_queue.sender();
     let freq_receiver = freq_queue.receiver();
