@@ -11,6 +11,8 @@ use daisy_embassy::{
 use defmt::debug;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
+use hal::gpio::Input;
+use hal::gpio::Pull;
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -52,6 +54,7 @@ async fn main(_spawner: Spawner) {
     let (board, (mut to_interface, mut from_interface)) =
         DaisyBoard::new(daisy_p, Default::default()).await;
     let mut interface = board.interface;
+    let mute = Input::new(board.daisy_pins.SEED_PIN_15, Pull::Up);
 
     let interface_fut = async { interface.start().await };
 
@@ -66,8 +69,14 @@ async fn main(_spawner: Spawner) {
 
             for chunk in buf.chunks_mut(2) {
                 let smp = make_triangle_wave(smp_pos % 120, 120);
-                chunk[0] = smp;
-                chunk[1] = smp;
+                if mute.is_high() {
+                    chunk[0] = smp;
+                    chunk[1] = smp;
+                } else {
+                    //if user push mute button, do not send triangle wave
+                    chunk[0] = 0;
+                    chunk[1] = 0;
+                }
                 smp_pos = smp_pos.wrapping_add_signed(1);
             }
             let tx = to_interface.send().await;
