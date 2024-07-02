@@ -3,12 +3,10 @@ use crate::led::UserLed;
 use crate::pins::*;
 use crate::usb::UsbPeripherals;
 use embassy_stm32 as hal;
-use hal::{bind_interrupts, i2c, peripherals, usb};
+use hal::{bind_interrupts, peripherals, usb};
 
 bind_interrupts!(pub struct Irqs {
     OTG_FS => usb::InterruptHandler<peripherals::USB_OTG_FS>;
-    I2C2_EV => i2c::EventInterruptHandler<peripherals::I2C2>;
-    I2C2_ER => i2c::ErrorInterruptHandler<peripherals::I2C2>;
 });
 
 pub struct DaisyBoard<'a> {
