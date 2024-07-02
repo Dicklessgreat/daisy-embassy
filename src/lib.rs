@@ -9,10 +9,10 @@ pub use board::DaisyBoard;
 pub use embassy_stm32 as hal;
 
 #[macro_export]
-macro_rules! new_daisy_p {
+macro_rules! new_daisy_boad {
     ($p:ident) => {
-        daisy_embassy::board::DaisyPeripherals {
-            daisy_pins: DaisyPins {
+        daisy_embassy::board::DaisyBoard {
+            pins: DaisyPins {
                 d0: $p.PB12,
                 d1: $p.PC11,
                 d2: $p.PC10,
@@ -45,7 +45,7 @@ macro_rules! new_daisy_p {
                 d29: $p.PB14,
                 d30: $p.PB15,
             },
-            led_user_pin: $p.PC7,
+            user_led: daisy_embassy::led::UserLed::new($p.PC7),
 
             audio_peripherals: daisy_embassy::audio::AudioPeripherals {
                 wm8731: WM8731Pins {
@@ -62,11 +62,15 @@ macro_rules! new_daisy_p {
                 dma1_ch1: $p.DMA1_CH1,
                 dma1_ch2: $p.DMA1_CH2,
             },
-            usb2_pins: USB2Pins {
-                DN: $p.PA11,
-                DP: $p.PA12,
+            FMC: (),
+            SDRAM: (),
+            usb_peripherals: daisy_embassy::usb::UsbPeripherals {
+                pins: USB2Pins {
+                    DN: $p.PA11,
+                    DP: $p.PA12,
+                },
+                usb_otg_fs: $p.USB_OTG_FS,
             },
-            usb_otg_fs: $p.USB_OTG_FS,
             boot: $p.PG3,
         }
     };

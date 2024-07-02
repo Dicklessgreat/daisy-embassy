@@ -4,9 +4,8 @@
 use daisy_embassy::{
     audio::HALF_DMA_BUFFER_LENGTH,
     hal::{self, time::Hertz},
-    new_daisy_p,
+    new_daisy_boad,
     pins::{DaisyPins, USB2Pins, WM8731Pins},
-    DaisyBoard,
 };
 use defmt::debug;
 use embassy_executor::Spawner;
@@ -82,8 +81,7 @@ async fn main(_spawner: Spawner) {
     }
 
     let p = hal::init(config);
-    let daisy_p = new_daisy_p!(p);
-    let board = DaisyBoard::new(daisy_p);
+    let board = new_daisy_boad!(p);
     let (mut interface, (mut to_interface, mut from_interface)) = board
         .audio_peripherals
         .prepare_interface(Default::default())
