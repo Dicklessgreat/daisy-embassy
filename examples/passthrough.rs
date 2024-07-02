@@ -53,7 +53,7 @@ async fn main(_spawner: Spawner) {
         DaisyBoard::new(daisy_p, Default::default()).await;
     let mut interface = board.interface;
 
-    let interface_fut = async { interface.start().await };
+    let interface_fut = interface.start();
 
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];

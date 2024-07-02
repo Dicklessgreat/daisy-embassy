@@ -99,7 +99,7 @@ async fn main(_spawner: Spawner) {
             Timer::after_millis(30).await;
         }
     };
-    let interface_fut = async { interface.start().await };
+    let interface_fut = interface.start();
 
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
