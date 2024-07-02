@@ -48,5 +48,8 @@ overflow-checks = true
 name = "passthrough"
 path = "examples/passthrough.rs"
 [[example]]
+name = "triangle_wave_tx"
+path = "examples/triangle_wave_tx.rs"
+[[example]]
 name = "_minimum_sai"
 path = "examples/_minimum_sai.rs"
