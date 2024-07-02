@@ -66,6 +66,7 @@ macro_rules! new_daisy_p {
                 DP: $p.PA12,
             },
             usb_otg_fs: $p.USB_OTG_FS,
+            boot: $p.PG3,
         }
     };
 }

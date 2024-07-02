@@ -14,13 +14,14 @@ bind_interrupts!(pub struct Irqs {
 #[allow(non_snake_case)]
 pub struct DaisyBoard<'a> {
     pub pins: DaisyPins,
-
     // board peripherals
     pub user_led: UserLed<'a>,
     pub interface: Interface<'a>,
     pub FMC: (),   //TODO
     pub SDRAM: (), // TODO
     pub daisy_usb: DaisyUsb,
+    // on board "BOOT" button.
+    pub boot: Boot,
 }
 
 pub struct DaisyPeripherals {
@@ -30,6 +31,7 @@ pub struct DaisyPeripherals {
     pub audio_peripherals: audio::Peripherals,
     pub usb2_pins: USB2Pins,
     pub usb_otg_fs: USB_OTG_FS,
+    pub boot: Boot,
 }
 
 impl<'a> DaisyBoard<'a> {
@@ -45,6 +47,7 @@ impl<'a> DaisyBoard<'a> {
                 FMC: (),
                 SDRAM: (),
                 daisy_usb: usb_driver,
+                boot: p.boot,
             },
             buffers,
         )
