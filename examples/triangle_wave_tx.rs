@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use core::sync::atomic::{AtomicU8, Ordering};
+
 use daisy_embassy::{
     audio::HALF_DMA_BUFFER_LENGTH,
     hal::{self, time::Hertz},
@@ -9,7 +11,6 @@ use daisy_embassy::{
 use defmt::debug;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use embassy_time::Timer;
 use hal::gpio::Pull;
 use hal::{exti::ExtiInput, gpio::Input};
@@ -30,11 +31,15 @@ impl WaveFrequency {
             Self::Low => 400,
         }
     }
-    fn next(&mut self) {
-        match self {
-            Self::High => *self = Self::Middle,
-            Self::Middle => *self = Self::Low,
-            Self::Low => *self = Self::High,
+}
+
+impl From<u8> for WaveFrequency {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => WaveFrequency::Low,
+            1 => WaveFrequency::Middle,
+            2 => WaveFrequency::High,
+            _ => panic!(),
         }
     }
 }
@@ -87,14 +92,17 @@ async fn main(_spawner: Spawner) {
         .await;
     let mute = Input::new(board.pins.d15, Pull::Up);
     let mut change_freq = ExtiInput::new(board.pins.d16, p.EXTI3, Pull::Up);
-    let freq_queue: Channel<CriticalSectionRawMutex, (), 4> = Channel::new();
-    let freq_sender = freq_queue.sender();
-    let freq_receiver = freq_queue.receiver();
+    let wave_freq = AtomicU8::new(0);
 
     let change_freq_fut = async {
+        let mut local = 0;
         loop {
             change_freq.wait_for_low().await;
-            freq_sender.send(()).await;
+            local += 1;
+            if local > 2 {
+                local = 0;
+            }
+            wave_freq.store(local, Ordering::SeqCst);
             Timer::after_millis(30).await;
         }
     };
@@ -103,17 +111,13 @@ async fn main(_spawner: Spawner) {
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
         let mut smp_pos = 0;
-        let mut freq = WaveFrequency::Middle;
         loop {
             //Receive buffer and discard all
             //This step is necessary for the audio callback to proceed.
             from_interface.receive().await;
             from_interface.receive_done();
 
-            if freq_receiver.try_receive().is_ok() {
-                freq.next();
-            }
-            let period = freq.as_period();
+            let period = WaveFrequency::from(wave_freq.load(Ordering::SeqCst)).as_period();
             for chunk in buf.chunks_mut(2) {
                 let smp = make_triangle_wave(smp_pos % period, period);
                 if mute.is_high() {
