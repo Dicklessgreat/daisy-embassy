@@ -40,9 +40,6 @@ async fn main(_spawner: Spawner) {
             freq: Hertz::mhz(16),
             mode: HseMode::Oscillator,
         })
-        //default as PLL1_Q?
-        //use hal::pac::rcc::vals::Saisel;
-        //config.rcc.mux.sai1sel = Saisel::PLL1_Q;
     }
 
     let p = hal::init(config);

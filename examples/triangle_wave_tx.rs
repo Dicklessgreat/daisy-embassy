@@ -81,7 +81,6 @@ async fn main(_spawner: Spawner) {
             freq: Hertz::mhz(16),
             mode: HseMode::Oscillator,
         });
-        config.rcc.mux.adcsel = mux::Adcsel::PLL2_P;
     }
 
     let p = hal::init(config);
