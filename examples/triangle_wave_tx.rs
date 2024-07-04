@@ -5,7 +5,6 @@ use daisy_embassy::{
     audio::HALF_DMA_BUFFER_LENGTH,
     hal::{self, time::Hertz},
     new_daisy_boad,
-    pins::{DaisyPins, USB2Pins, WM8731Pins},
 };
 use defmt::debug;
 use embassy_executor::Spawner;

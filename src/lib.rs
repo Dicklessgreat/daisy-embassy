@@ -12,7 +12,7 @@ pub use embassy_stm32 as hal;
 macro_rules! new_daisy_boad {
     ($p:ident) => {
         daisy_embassy::board::DaisyBoard {
-            pins: DaisyPins {
+            pins: daisy_embassy::pins::DaisyPins {
                 d0: $p.PB12,
                 d1: $p.PC11,
                 d2: $p.PC10,
@@ -48,7 +48,7 @@ macro_rules! new_daisy_boad {
             user_led: daisy_embassy::led::UserLed::new($p.PC7),
 
             audio_peripherals: daisy_embassy::audio::AudioPeripherals {
-                wm8731: WM8731Pins {
+                wm8731: daisy_embassy::pins::WM8731Pins {
                     SCL: $p.PH4,
                     SDA: $p.PB11,
                     MCLK_A: $p.PE2,
@@ -65,7 +65,7 @@ macro_rules! new_daisy_boad {
             fmc: (),
             sdram: (),
             usb_peripherals: daisy_embassy::usb::UsbPeripherals {
-                pins: USB2Pins {
+                pins: daisy_embassy::pins::USB2Pins {
                     DN: $p.PA11,
                     DP: $p.PA12,
                 },

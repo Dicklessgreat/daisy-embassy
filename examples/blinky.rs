@@ -2,7 +2,6 @@
 #![no_main]
 
 use daisy_embassy::new_daisy_boad;
-use daisy_embassy::pins::{DaisyPins, USB2Pins, WM8731Pins};
 use defmt::info;
 use embassy_executor::Spawner;
 use embassy_time::Timer;
