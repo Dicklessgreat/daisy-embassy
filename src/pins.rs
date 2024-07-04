@@ -36,7 +36,6 @@ pub type SeedPin30 = hal::peripherals::PB15; // PIN_37, USB1 D+, USART1 Rx
 
 pub type Boot = hal::peripherals::PG3; //on board "BOOT" button
 
-#[allow(non_snake_case)]
 pub struct DaisyPins {
     pub d0: SeedPin0,
     pub d1: SeedPin1,
