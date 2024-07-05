@@ -154,12 +154,8 @@ pub enum Fs {
     Fs32000,
     Fs44100,
     Fs48000,
-    Fs64000,
     Fs88200,
     Fs96000,
-    Fs128000,
-    Fs176000,
-    Fs192000,
 }
 const CLOCK_RATIO: u32 = 256; //Not yet support oversampling.
 impl Fs {
@@ -168,12 +164,8 @@ impl Fs {
             Fs::Fs32000 => 32000,
             Fs::Fs44100 => 44100,
             Fs::Fs48000 => 48000,
-            Fs::Fs64000 => 64000,
             Fs::Fs88200 => 88200,
             Fs::Fs96000 => 96000,
-            Fs::Fs128000 => 128000,
-            Fs::Fs176000 => 176000,
-            Fs::Fs192000 => 192000,
         };
         let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
         let mclk_div = (kernel_clock / (fs * CLOCK_RATIO)) as u8;
