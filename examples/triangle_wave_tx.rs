@@ -109,7 +109,7 @@ async fn main(_spawner: Spawner) {
 
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
-        let mut smp_pos = 0;
+        let mut smp_pos: u32 = 0;
         loop {
             //Receive buffer and discard all
             //This step is necessary for the audio callback to proceed.
@@ -118,7 +118,7 @@ async fn main(_spawner: Spawner) {
 
             let period = WaveFrequency::from(wave_freq.load(Ordering::SeqCst)).as_period();
             for chunk in buf.chunks_mut(2) {
-                let smp = make_triangle_wave(smp_pos % period, period);
+                let smp = f32_to_u24(make_triangle_wave(smp_pos % period, period));
                 if mute.is_high() {
                     chunk[0] = smp;
                     chunk[1] = smp;
@@ -127,7 +127,7 @@ async fn main(_spawner: Spawner) {
                     chunk[0] = 0;
                     chunk[1] = 0;
                 }
-                smp_pos = smp_pos.wrapping_add_signed(1);
+                smp_pos = smp_pos.wrapping_add(1);
             }
             let tx = to_interface.send().await;
             tx.copy_from_slice(&buf);
@@ -137,16 +137,21 @@ async fn main(_spawner: Spawner) {
     join(change_freq_fut, join(interface_fut, audio_callback_fut)).await;
 }
 
-const fn make_triangle_wave(pos: u32, period_smp: u32) -> u32 {
+fn make_triangle_wave(pos: u32, period_smp: u32) -> f32 {
     assert!(pos <= period_smp);
-    let half = u32::MAX / 2;
-    if pos <= (period_smp / 4) {
-        half + (pos * (half / period_smp * 4))
-    } else if (period_smp / 4) < pos && pos <= (period_smp / 4 * 3) {
-        let pos = pos - period_smp / 4;
-        u32::MAX - (pos * (u32::MAX / period_smp * 2))
+    if pos <= (period_smp / 2) {
+        pos as f32 * 4.0 / period_smp as f32 - 1.0
     } else {
-        let pos = pos - period_smp / 4 * 3;
-        (half / period_smp * 4) * pos
+        let pos = pos - period_smp / 2;
+        pos as f32 * (-4.0) / period_smp as f32 + 1.0
     }
+}
+
+/// convert audio data from f32 to u24
+#[inline(always)]
+fn f32_to_u24(x: f32) -> u32 {
+    //return (int16_t) __SSAT((int32_t) (x * 32767.f), 16);
+    let x = x * 8_388_607.0;
+    let x = x.clamp(-8_388_608.0, 8_388_607.0);
+    (x as i32) as u32
 }
