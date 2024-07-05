@@ -65,7 +65,7 @@ impl AudioPeripherals {
             i2c_config,
         );
         info!("set up WM8731");
-        setup_wm8731(&mut i2c).await;
+        setup_wm8731(&mut i2c, audio_config.fs).await;
 
         info!("set up sai_tx");
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(self.sai1);
@@ -150,6 +150,7 @@ impl AudioPeripherals {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Fs {
     Fs8000,
     Fs32000,
@@ -232,7 +233,7 @@ impl<'a> Interface<'a> {
 }
 
 //====================wm8731 register set up functions============================
-async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>) {
+async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>, fs: Fs) {
     use wm8731::WM8731;
     info!("setup wm8731 from I2C");
 
@@ -308,7 +309,26 @@ async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>) {
         WM8731::sampling(|w| {
             w.core_clock_divider_select().normal();
             w.base_oversampling_rate().normal_256();
-            w.sample_rate().adc_48();
+            match fs {
+                Fs::Fs8000 => {
+                    w.sample_rate().adc_8();
+                }
+                Fs::Fs32000 => {
+                    w.sample_rate().adc_32();
+                }
+                Fs::Fs44100 => {
+                    w.sample_rate().adc_441();
+                }
+                Fs::Fs48000 => {
+                    w.sample_rate().adc_48();
+                }
+                Fs::Fs88200 => {
+                    w.sample_rate().adc_882();
+                }
+                Fs::Fs96000 => {
+                    w.sample_rate().adc_96();
+                }
+            }
             w.usb_normal().normal();
         }),
     );
