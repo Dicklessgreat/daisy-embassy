@@ -11,7 +11,6 @@ use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
 use hal::sai::BitOrder;
 use hal::sai::ClockStrobe;
-use hal::sai::ComplementFormat;
 use hal::sai::Config;
 use hal::sai::DataSize;
 use hal::sai::FifoThreshold;
@@ -21,6 +20,7 @@ use hal::sai::MasterClockDivider;
 use hal::sai::Mode;
 use hal::sai::Sai;
 use hal::sai::StereoMono;
+use hal::sai::SyncInput;
 use hal::sai::TxRx;
 use hal::time::Hertz;
 use panic_probe as _;
@@ -29,6 +29,7 @@ use panic_probe as _;
 pub const BLOCK_LENGTH: usize = 32; // 32 samples
 pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2; //  2 channels
 pub const DMA_BUFFER_LENGTH: usize = HALF_DMA_BUFFER_LENGTH * 2; //  2 half-blocks
+pub const SAMPLE_RATE: u32 = 48000;
 
 //DMA buffer must be in special region. Refer https://embassy.dev/book/#_stm32_bdma_only_working_out_of_some_ram_regions
 #[link_section = ".sram1_bss"]
@@ -44,70 +45,56 @@ async fn execute(hal_config: hal::Config) {
     //Once SAI is initiated, the bus will be occupied by it.
     setup_codecs_from_i2c(p.I2C2, p.PH4, p.PB11).await;
 
-    info!("Starting SAI");
     let (sub_block_rx, sub_block_tx) = hal::sai::split_subblocks(p.SAI1);
-    let (tx_config, mut sai_transmitter) = {
-        let tx_config = {
-            let mut config = Config::default();
-            config.mode = Mode::Slave;
-            config.tx_rx = TxRx::Transmitter;
-            config.stereo_mono = StereoMono::Stereo;
-            config.data_size = DataSize::Data24;
-            config.clock_strobe = ClockStrobe::Falling;
-            config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-            config.fifo_threshold = FifoThreshold::Empty;
-            config.sync_output = false;
-            config.bit_order = BitOrder::MsbFirst;
-            config.complement_format = ComplementFormat::OnesComplement;
-            config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
-            let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
-            info!("kernel clock:{}", kernel_clock);
-            let mclk_div = (kernel_clock / (48000 * 256)) as u8;
-            info!("master clock divider:{}", mclk_div);
-            config.master_clock_divider = mclk_div_from_u8(mclk_div);
-            config
-        };
+    let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
+    let mclk_div = mclk_div_from_u8((kernel_clock / (SAMPLE_RATE * 256)) as u8);
 
-        let tx_buffer: &mut [u32] = unsafe {
-            TX_BUFFER.initialize_all_copied(0);
-            let (ptr, len) = TX_BUFFER.get_ptr_len();
-            core::slice::from_raw_parts_mut(ptr, len)
-        };
-        (
-            tx_config,
-            Sai::new_synchronous(sub_block_tx, p.PE3, p.DMA1_CH0, tx_buffer, tx_config),
-        )
+    let mut rx_config = Config::default();
+    rx_config.mode = Mode::Master;
+    rx_config.tx_rx = TxRx::Receiver;
+    rx_config.sync_output = true;
+    rx_config.clock_strobe = ClockStrobe::Falling;
+    rx_config.master_clock_divider = mclk_div;
+    rx_config.stereo_mono = StereoMono::Stereo;
+    rx_config.data_size = DataSize::Data24;
+    rx_config.bit_order = BitOrder::MsbFirst;
+    rx_config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+    rx_config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
+    rx_config.frame_length = 64;
+    rx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
+    rx_config.fifo_threshold = FifoThreshold::Quarter;
+
+    let mut tx_config = rx_config;
+    tx_config.mode = Mode::Slave;
+    tx_config.tx_rx = TxRx::Transmitter;
+    tx_config.sync_input = SyncInput::Internal;
+    tx_config.clock_strobe = ClockStrobe::Rising;
+    tx_config.sync_output = false;
+
+    let tx_buffer: &mut [u32] = unsafe {
+        TX_BUFFER.initialize_all_copied(0);
+        let (ptr, len) = TX_BUFFER.get_ptr_len();
+        core::slice::from_raw_parts_mut(ptr, len)
+    };
+    let rx_buffer: &mut [u32] = unsafe {
+        RX_BUFFER.initialize_all_copied(0);
+        let (ptr, len) = RX_BUFFER.get_ptr_len();
+        core::slice::from_raw_parts_mut(ptr, len)
     };
 
-    let mut sai_receiver = {
-        let rx_config = {
-            let mut config = tx_config;
-            config.mode = Mode::Master;
-            config.tx_rx = TxRx::Receiver;
-            config.clock_strobe = ClockStrobe::Rising;
-            config.sync_output = true;
-            config
-        };
-        let rx_buffer: &mut [u32] = unsafe {
-            RX_BUFFER.initialize_all_copied(0);
-            let (ptr, len) = RX_BUFFER.get_ptr_len();
-            core::slice::from_raw_parts_mut(ptr, len)
-        };
+    let mut sai_receiver = Sai::new_asynchronous_with_mclk(
+        sub_block_rx,
+        p.PE5,
+        p.PE6,
+        p.PE4,
+        p.PE2,
+        p.DMA1_CH0,
+        rx_buffer,
+        rx_config,
+    );
 
-        Sai::new_asynchronous_with_mclk(
-            sub_block_rx,
-            p.PE5,
-            p.PE6,
-            p.PE4,
-            p.PE2,
-            p.DMA1_CH1,
-            rx_buffer,
-            rx_config,
-        )
-    };
-
-    let mut smp_pos = 0;
-    let mut signal = [0; HALF_DMA_BUFFER_LENGTH];
+    let mut sai_transmitter =
+        Sai::new_synchronous(sub_block_tx, p.PE3, p.DMA1_CH1, tx_buffer, tx_config);
 
     sai_receiver.start();
     sai_transmitter.start();
@@ -116,24 +103,17 @@ async fn execute(hal_config: hal::Config) {
 
     info!("enter audio loop");
     loop {
-        //fill the buffer
-        for chunk in signal.chunks_mut(2) {
-            let smp = make_triangle_wave(smp_pos % DUR);
-            chunk[0] = smp;
-            chunk[1] = smp;
-            smp_pos += 1;
-        }
-
-        match sai_transmitter.write(&signal).await {
-            Ok(_) => {}
-            Err(e) => {
-                warn!("Error writing to SAI: {:?}", e);
-            }
-        }
         match sai_receiver.read(&mut rx_signal).await {
             Ok(_) => {}
             Err(e) => {
                 warn!("Error reading from SAI: {:?}", e);
+            }
+        }
+
+        match sai_transmitter.write(&rx_signal).await {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Error writing to SAI: {:?}", e);
             }
         }
     }
@@ -142,30 +122,35 @@ async fn execute(hal_config: hal::Config) {
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let mut config = hal::Config::default();
-    {
-        use hal::rcc::*;
-        config.rcc.hsi = Some(HSIPrescaler::DIV1);
-        config.rcc.csi = true;
-        config.rcc.pll1 = Some(Pll {
-            source: PllSource::HSI,
-            prediv: PllPreDiv::DIV4,
-            mul: PllMul::MUL50,
-            divp: Some(PllDiv::DIV2),
-            divq: Some(PllDiv::DIV8),
-            divr: None,
-        });
-        config.rcc.sys = Sysclk::PLL1_P; // 400 Mhz
-        config.rcc.ahb_pre = AHBPrescaler::DIV2; // 200 Mhz
-        config.rcc.apb1_pre = APBPrescaler::DIV2; // 100 Mhz
-        config.rcc.apb2_pre = APBPrescaler::DIV2; // 100 Mhz
-        config.rcc.apb3_pre = APBPrescaler::DIV2; // 100 Mhz
-        config.rcc.apb4_pre = APBPrescaler::DIV2; // 100 Mhz
-        config.rcc.voltage_scale = VoltageScale::Scale1;
-        config.rcc.hse = Some(Hse {
-            freq: Hertz::mhz(16),
-            mode: HseMode::Oscillator,
-        });
-    }
+    use hal::rcc::*;
+    config.rcc.pll1 = Some(Pll {
+        source: PllSource::HSE,
+        prediv: PllPreDiv::DIV4,
+        mul: PllMul::MUL200,
+        divp: Some(PllDiv::DIV2),
+        divq: Some(PllDiv::DIV5),
+        divr: Some(PllDiv::DIV2),
+    });
+    config.rcc.pll3 = Some(Pll {
+        source: PllSource::HSE,
+        prediv: PllPreDiv::DIV6,
+        mul: PllMul::MUL295,
+        divp: Some(PllDiv::DIV16),
+        divq: Some(PllDiv::DIV4),
+        divr: Some(PllDiv::DIV32),
+    });
+    config.rcc.sys = Sysclk::PLL1_P;
+    config.rcc.mux.sai1sel = hal::pac::rcc::vals::Saisel::PLL3_P;
+
+    config.rcc.ahb_pre = AHBPrescaler::DIV2; // 200 Mhz
+    config.rcc.apb1_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.apb2_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.apb3_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.apb4_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.hse = Some(Hse {
+        freq: Hertz::mhz(16),
+        mode: HseMode::Oscillator,
+    });
     spawner.spawn(execute(config)).unwrap();
 }
 
@@ -353,20 +338,5 @@ const fn mclk_div_from_u8(v: u8) -> MasterClockDivider {
         62 => MasterClockDivider::Div62,
         63 => MasterClockDivider::Div63,
         _ => panic!(),
-    }
-}
-
-const DUR: u32 = 120;
-const fn make_triangle_wave(pos: u32) -> u32 {
-    assert!(pos <= DUR);
-    let half = u32::MAX / 2;
-    if pos <= (DUR / 4) {
-        half + (pos * (half / DUR * 4))
-    } else if (DUR / 4) < pos && pos <= (DUR / 4 * 3) {
-        let pos = pos - DUR / 4;
-        u32::MAX - (pos * (u32::MAX / DUR * 2))
-    } else {
-        let pos = pos - DUR / 4 * 3;
-        (half / DUR * 4) * pos
     }
 }
