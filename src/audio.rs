@@ -7,10 +7,9 @@ use embassy_sync::{
 };
 use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
-use hal::sai::BitOrder;
-use hal::sai::ComplementFormat;
 use hal::sai::FifoThreshold;
 use hal::sai::FrameSyncOffset;
+use hal::sai::{BitOrder, SyncInput};
 use hal::{
     peripherals,
     sai::{
@@ -71,22 +70,28 @@ impl AudioPeripherals {
         info!("set up sai_tx");
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(self.sai1);
 
-        let sai_tx_conf = {
-            let mut config = Config::default();
-            config.mode = Mode::Slave;
-            config.tx_rx = TxRx::Transmitter;
-            config.stereo_mono = StereoMono::Stereo;
-            config.data_size = DataSize::Data24;
-            config.clock_strobe = ClockStrobe::Falling;
-            config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-            config.fifo_threshold = FifoThreshold::Empty;
-            config.sync_output = false;
-            config.bit_order = BitOrder::MsbFirst;
-            config.complement_format = ComplementFormat::OnesComplement;
-            config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
-            config.master_clock_divider = audio_config.tx_fs.into_clock_divider();
-            config
-        };
+        let mut sai_rx_config = Config::default();
+        sai_rx_config.mode = Mode::Master;
+        sai_rx_config.tx_rx = TxRx::Receiver;
+        sai_rx_config.sync_output = true;
+        sai_rx_config.clock_strobe = ClockStrobe::Falling;
+        sai_rx_config.master_clock_divider = audio_config.fs.into_clock_divider();
+        sai_rx_config.stereo_mono = StereoMono::Stereo;
+        sai_rx_config.data_size = DataSize::Data24;
+        sai_rx_config.bit_order = BitOrder::MsbFirst;
+        sai_rx_config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+        sai_rx_config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
+        sai_rx_config.frame_length = 64;
+        sai_rx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
+        sai_rx_config.fifo_threshold = FifoThreshold::Quarter;
+
+        let mut sai_tx_config = sai_rx_config;
+        sai_tx_config.mode = Mode::Slave;
+        sai_tx_config.tx_rx = TxRx::Transmitter;
+        sai_tx_config.sync_input = SyncInput::Internal;
+        sai_tx_config.clock_strobe = ClockStrobe::Rising;
+        sai_tx_config.sync_output = false;
+
         let tx_buffer: &mut [u32] = unsafe {
             TX_BUFFER.initialize_all_copied(0);
             let (ptr, len) = TX_BUFFER.get_ptr_len();
@@ -97,21 +102,9 @@ impl AudioPeripherals {
             self.wm8731.SD_B,
             self.dma1_ch1,
             tx_buffer,
-            sai_tx_conf,
+            sai_tx_config,
         );
 
-        info!("set up sai_rx");
-        let sai_rx_conf = {
-            //copy tx configuration
-            let mut config = sai_tx_conf;
-            //fix rx only configuration
-            config.mode = Mode::Master;
-            config.tx_rx = TxRx::Receiver;
-            config.clock_strobe = ClockStrobe::Rising;
-            config.sync_output = true;
-            config.master_clock_divider = audio_config.rx_fs.into_clock_divider();
-            config
-        };
         let rx_buffer: &mut [u32] = unsafe {
             RX_BUFFER.initialize_all_copied(0);
             let (ptr, len) = RX_BUFFER.get_ptr_len();
@@ -125,7 +118,7 @@ impl AudioPeripherals {
             self.wm8731.MCLK_A,
             self.dma1_ch2,
             rx_buffer,
-            sai_rx_conf,
+            sai_rx_config,
         );
 
         static TO_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
@@ -144,8 +137,8 @@ impl AudioPeripherals {
 
         (
             Interface {
-                sai_rx_conf,
-                sai_tx_conf,
+                sai_rx_config,
+                sai_tx_config,
                 sai_rx,
                 sai_tx,
                 i2c,
@@ -189,22 +182,18 @@ impl Fs {
 }
 
 pub struct AudioConfig {
-    tx_fs: Fs,
-    rx_fs: Fs,
+    fs: Fs,
 }
 
 impl Default for AudioConfig {
     fn default() -> Self {
-        AudioConfig {
-            tx_fs: Fs::Fs48000,
-            rx_fs: Fs::Fs48000,
-        }
+        AudioConfig { fs: Fs::Fs48000 }
     }
 }
 
 pub struct Interface<'a> {
-    sai_tx_conf: sai::Config,
-    sai_rx_conf: sai::Config,
+    sai_tx_config: sai::Config,
+    sai_rx_config: sai::Config,
     sai_tx: Sai<'a, peripherals::SAI1, u32>,
     sai_rx: Sai<'a, peripherals::SAI1, u32>,
     i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
@@ -241,10 +230,10 @@ impl<'a> Interface<'a> {
         }
     }
     pub fn rx_config(&self) -> &sai::Config {
-        &self.sai_rx_conf
+        &self.sai_rx_config
     }
     pub fn tx_config(&self) -> &sai::Config {
-        &self.sai_tx_conf
+        &self.sai_tx_config
     }
 }
 
