@@ -151,6 +151,7 @@ impl AudioPeripherals {
 }
 
 pub enum Fs {
+    Fs8000,
     Fs32000,
     Fs44100,
     Fs48000,
@@ -161,6 +162,7 @@ const CLOCK_RATIO: u32 = 256; //Not yet support oversampling.
 impl Fs {
     fn into_clock_divider(self) -> MasterClockDivider {
         let fs = match self {
+            Fs::Fs8000 => 8000,
             Fs::Fs32000 => 32000,
             Fs::Fs44100 => 44100,
             Fs::Fs48000 => 48000,
