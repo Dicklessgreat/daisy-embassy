@@ -3,11 +3,7 @@
 
 use core::sync::atomic::{AtomicU8, Ordering};
 
-use daisy_embassy::{
-    audio::HALF_DMA_BUFFER_LENGTH,
-    hal::{self, time::Hertz},
-    new_daisy_boad,
-};
+use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_boad};
 use defmt::debug;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
