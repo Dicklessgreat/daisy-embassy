@@ -8,6 +8,40 @@ pub mod usb;
 pub use board::DaisyBoard;
 pub use embassy_stm32 as hal;
 
+pub fn default_rcc() -> hal::Config {
+    let mut config = hal::Config::default();
+    use hal::rcc::*;
+    config.rcc.pll1 = Some(Pll {
+        source: PllSource::HSE,
+        prediv: PllPreDiv::DIV4,
+        mul: PllMul::MUL200,
+        divp: Some(PllDiv::DIV2),
+        divq: Some(PllDiv::DIV5),
+        divr: Some(PllDiv::DIV2),
+    });
+    config.rcc.pll3 = Some(Pll {
+        source: PllSource::HSE,
+        prediv: PllPreDiv::DIV6,
+        mul: PllMul::MUL295,
+        divp: Some(PllDiv::DIV16),
+        divq: Some(PllDiv::DIV4),
+        divr: Some(PllDiv::DIV32),
+    });
+    config.rcc.sys = Sysclk::PLL1_P;
+    config.rcc.mux.sai1sel = hal::pac::rcc::vals::Saisel::PLL3_P;
+
+    config.rcc.ahb_pre = AHBPrescaler::DIV2; // 200 Mhz
+    config.rcc.apb1_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.apb2_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.apb3_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.apb4_pre = APBPrescaler::DIV2; // 100 Mhz
+    config.rcc.hse = Some(Hse {
+        freq: hal::time::Hertz::mhz(16),
+        mode: HseMode::Oscillator,
+    });
+    config
+}
+
 #[macro_export]
 macro_rules! new_daisy_boad {
     ($p:ident) => {
