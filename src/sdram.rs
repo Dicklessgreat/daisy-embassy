@@ -77,6 +77,7 @@ pub fn init<'a>(pins: SdRamPins, instance: FMC) -> Sdram<Fmc<'a, FMC>, Is42s3216
 
 // Not yet implemented only boilerplate
 //=====================is42s32160ge_75bli============================
+#[allow(dead_code)]
 mod is42s32160ge_75bli {
 
     use stm32_fmc::{SdramChip, SdramConfiguration, SdramTiming};
