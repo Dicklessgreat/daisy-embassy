@@ -5,74 +5,82 @@ use hal::peripherals::FMC;
 use is42s32160ge_75bli::Is42s32160ge75bli;
 use stm32_fmc::Sdram;
 
-pub fn init<'a>(pins: SdRamPins, instance: FMC) -> Sdram<Fmc<'a, FMC>, Is42s32160ge75bli> {
-    Fmc::sdram_a12bits_d32bits_4banks_bank1(
-        instance,
-        // A0-A12
-        pins.ff0,
-        pins.ff1,
-        pins.ff2,
-        pins.ff3,
-        pins.ff4,
-        pins.ff5,
-        pins.ff12,
-        pins.ff13,
-        pins.ff14,
-        pins.ff15,
-        pins.gg0,
-        pins.gg1,
-        // is42s32160ge_75bli has "A12" pin, but not yet implemented
-        // pins.gg2,
+pub struct SdRamBuilder {
+    pub pins: SdRamPins,
+    pub instance: FMC,
+}
 
-        // BA0-BA1
-        pins.gg4,
-        pins.gg5,
-        // D0-D31
-        pins.dd14,
-        pins.dd15,
-        pins.dd0,
-        pins.dd1,
-        pins.ee7,
-        pins.ee8,
-        pins.ee9,
-        pins.ee10,
-        pins.ee11,
-        pins.ee12,
-        pins.ee13,
-        pins.ee14,
-        pins.ee15,
-        pins.dd8,
-        pins.dd9,
-        pins.dd10,
-        pins.hh8,
-        pins.hh9,
-        pins.hh10,
-        pins.hh11,
-        pins.hh12,
-        pins.hh13,
-        pins.hh14,
-        pins.hh15,
-        pins.ii0,
-        pins.ii1,
-        pins.ii2,
-        pins.ii3,
-        pins.ii6,
-        pins.ii7,
-        pins.ii9,
-        pins.ii10,
-        // NBL0 - NBL3
-        pins.ee0,
-        pins.ee1,
-        pins.ii4,
-        pins.ii5,
-        pins.hh2,  // SDCKE0
-        pins.gg8,  // SDCLK
-        pins.gg15, // SDNCAS
-        pins.hh3,  // SDNE0
-        pins.ff11, // SDRAS
-        pins.hh5,  // SDNWE
-        Is42s32160ge75bli {},
-    )
+impl SdRamBuilder {
+    pub fn build<'a>(self) -> Sdram<Fmc<'a, FMC>, Is42s32160ge75bli> {
+        let Self { pins, instance } = self;
+        Fmc::sdram_a12bits_d32bits_4banks_bank1(
+            instance,
+            // A0-A12
+            pins.ff0,
+            pins.ff1,
+            pins.ff2,
+            pins.ff3,
+            pins.ff4,
+            pins.ff5,
+            pins.ff12,
+            pins.ff13,
+            pins.ff14,
+            pins.ff15,
+            pins.gg0,
+            pins.gg1,
+            // is42s32160ge_75bli has "A12" pin, but not yet implemented
+            // pins.gg2,
+
+            // BA0-BA1
+            pins.gg4,
+            pins.gg5,
+            // D0-D31
+            pins.dd14,
+            pins.dd15,
+            pins.dd0,
+            pins.dd1,
+            pins.ee7,
+            pins.ee8,
+            pins.ee9,
+            pins.ee10,
+            pins.ee11,
+            pins.ee12,
+            pins.ee13,
+            pins.ee14,
+            pins.ee15,
+            pins.dd8,
+            pins.dd9,
+            pins.dd10,
+            pins.hh8,
+            pins.hh9,
+            pins.hh10,
+            pins.hh11,
+            pins.hh12,
+            pins.hh13,
+            pins.hh14,
+            pins.hh15,
+            pins.ii0,
+            pins.ii1,
+            pins.ii2,
+            pins.ii3,
+            pins.ii6,
+            pins.ii7,
+            pins.ii9,
+            pins.ii10,
+            // NBL0 - NBL3
+            pins.ee0,
+            pins.ee1,
+            pins.ii4,
+            pins.ii5,
+            pins.hh2,  // SDCKE0
+            pins.gg8,  // SDCLK
+            pins.gg15, // SDNCAS
+            pins.hh3,  // SDNE0
+            pins.ff11, // SDRAS
+            pins.hh5,  // SDNWE
+            Is42s32160ge75bli {},
+        )
+    }
 }
 
 // Not yet implemented only boilerplate
