@@ -117,6 +117,7 @@ dependencies = [
  "grounded",
  "panic-probe",
  "static_cell",
+ "stm32-fmc",
  "wm8731",
 ]
 
