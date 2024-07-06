@@ -289,7 +289,7 @@ async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>, fs: 
     );
     Timer::after_micros(10).await;
 
-    // nothing inverted, slave, 32-bits, MSB format
+    // nothing inverted, slave, 24-bits, MSB format
     write_wm8731_reg(
         i2c,
         WM8731::digital_audio_interface_format(|w| {
@@ -303,7 +303,7 @@ async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>, fs: 
     );
     Timer::after_micros(10).await;
 
-    // no clock division, normal mode, 48k
+    // no clock division, normal mode
     write_wm8731_reg(
         i2c,
         WM8731::sampling(|w| {
