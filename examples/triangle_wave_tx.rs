@@ -66,7 +66,6 @@ async fn main(_spawner: Spawner) {
             Timer::after_millis(30).await;
         }
     };
-    let interface_fut = interface.start();
 
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
@@ -95,7 +94,7 @@ async fn main(_spawner: Spawner) {
             to_interface.send_done();
         }
     };
-    join(change_freq_fut, join(interface_fut, audio_callback_fut)).await;
+    join(change_freq_fut, join(interface.start(), audio_callback_fut)).await;
 }
 
 fn make_triangle_wave(pos: u32, period_smp: u32) -> f32 {

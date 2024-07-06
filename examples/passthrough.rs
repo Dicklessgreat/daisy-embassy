@@ -18,8 +18,6 @@ async fn main(_spawner: Spawner) {
         .prepare_interface(Default::default())
         .await;
 
-    let interface_fut = interface.start();
-
     let audio_callback_fut = async {
         let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
         loop {
@@ -32,5 +30,5 @@ async fn main(_spawner: Spawner) {
             to_interface.send_done();
         }
     };
-    join(interface_fut, audio_callback_fut).await;
+    join(interface.start(), audio_callback_fut).await;
 }
