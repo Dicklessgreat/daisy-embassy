@@ -1,13 +1,11 @@
+use crate::pins::SdRamPins;
 use embassy_stm32 as hal;
 use hal::fmc::Fmc;
-use hal::peripherals;
+use hal::peripherals::FMC;
 use is42s32160ge_75bli::Is42s32160ge75bli;
 use stm32_fmc::Sdram;
 
-pub fn init<'a>(
-    pins: SdRamPins,
-    instance: peripherals::FMC,
-) -> Sdram<Fmc<'a, peripherals::FMC>, Is42s32160ge75bli> {
+pub fn init<'a>(pins: SdRamPins, instance: FMC) -> Sdram<Fmc<'a, FMC>, Is42s32160ge75bli> {
     Fmc::sdram_a12bits_d32bits_4banks_bank1(
         instance,
         // A0-A12
