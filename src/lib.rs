@@ -44,7 +44,7 @@ pub fn default_rcc() -> hal::Config {
 }
 
 #[macro_export]
-macro_rules! new_daisy_boad {
+macro_rules! new_daisy_board {
     ($p:ident) => {
         daisy_embassy::board::DaisyBoard {
             pins: daisy_embassy::pins::DaisyPins {

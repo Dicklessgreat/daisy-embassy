@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_boad};
+use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_board};
 use defmt::debug;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
@@ -12,7 +12,7 @@ async fn main(_spawner: Spawner) {
     debug!("====program start====");
     let config = daisy_embassy::default_rcc();
     let p = hal::init(config);
-    let board = new_daisy_boad!(p);
+    let board = new_daisy_board!(p);
     let (mut interface, (mut to_interface, mut from_interface)) = board
         .audio_peripherals
         .prepare_interface(Default::default())
