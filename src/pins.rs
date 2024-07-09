@@ -91,7 +91,7 @@ pub struct USB2Pins {
 }
 
 #[allow(non_snake_case)]
-pub struct FMCPins {
+pub struct FlashPins {
     // https://github.com/electro-smith/libDaisy/blob/3dda55e9ed55a2f8b6bc4fa6aa2c7ae134c317ab/src/per/qspi.c#L695
     pub IO0: PF8, // (SI)
     pub IO1: PF9, // (SO)

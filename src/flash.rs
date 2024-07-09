@@ -1,4 +1,4 @@
-use crate::pins::FMCPins;
+use crate::pins::FlashPins;
 use embassy_stm32 as hal;
 use hal::{
     mode::Blocking,
@@ -7,7 +7,7 @@ use hal::{
 };
 
 pub struct FlashBuilder {
-    pub pins: FMCPins,
+    pub pins: FlashPins,
     pub qspi: QUADSPI,
 }
 
