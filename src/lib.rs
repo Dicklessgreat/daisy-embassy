@@ -5,6 +5,7 @@ pub mod led;
 pub mod pins;
 pub mod sdram;
 pub mod usb;
+pub mod flash;
 
 pub use board::DaisyBoard;
 pub use embassy_stm32 as hal;
