@@ -3,19 +3,19 @@ use cortex_m::peripheral::{MPU, SCB};
 use embassy_stm32 as hal;
 use hal::fmc::Fmc;
 use hal::peripherals::FMC;
-use is42s32160ge_75bli::Is42s32160ge75bli;
+use stm32_fmc::devices::as4c16m32msa_6::As4c16m32msa;
 use stm32_fmc::Sdram;
 
+pub const SDRAM_SIZE: usize = 64 * 1024 * 1024;
 pub struct SdRamBuilder {
     pub pins: SdRamPins,
     pub instance: FMC,
 }
 
 impl SdRamBuilder {
-    pub fn build<'a>(self, mpu: &mut MPU, scb: &mut SCB) -> Sdram<Fmc<'a, FMC>, Is42s32160ge75bli> {
+    pub fn build<'a>(self, mpu: &mut MPU, scb: &mut SCB) -> Sdram<Fmc<'a, FMC>, As4c16m32msa> {
         // Configure MPU for external SDRAM
         // MPU config for SDRAM write-through
-        let sdram_size = 64 * 1024 * 1024;
         // Refer to ARM®v7-M Architecture Reference Manual ARM DDI 0403
         // Version E.b Section B3.5
         const MEMFAULTENA: u32 = 1 << 16;
@@ -38,12 +38,12 @@ impl SdRamBuilder {
         const REGION_ENABLE: u32 = 0x01;
 
         assert_eq!(
-            sdram_size & (sdram_size - 1),
+            SDRAM_SIZE & (SDRAM_SIZE - 1),
             0,
             "SDRAM memory region size must be a power of 2"
         );
         assert_eq!(
-            sdram_size & 0x1F,
+            SDRAM_SIZE & 0x1F,
             0,
             "SDRAM memory region size must be 32 bytes or more"
         );
@@ -67,7 +67,7 @@ impl SdRamBuilder {
                 (REGION_FULL_ACCESS << 24)
                     | (REGION_CACHEABLE << 17)
                     | (REGION_WRITE_BACK << 16)
-                    | (log2minus1(sdram_size as u32) << 1)
+                    | (log2minus1(SDRAM_SIZE as u32) << 1)
                     | REGION_ENABLE,
             );
         }
@@ -88,7 +88,7 @@ impl SdRamBuilder {
         }
 
         let Self { pins, instance } = self;
-        Fmc::sdram_a12bits_d32bits_4banks_bank1(
+        Fmc::sdram_a13bits_d32bits_4banks_bank1(
             instance,
             // A0-A12
             pins.ff0,
@@ -103,9 +103,7 @@ impl SdRamBuilder {
             pins.ff15,
             pins.gg0,
             pins.gg1,
-            // is42s32160ge_75bli has "A12" pin, but not yet implemented
-            // pins.gg2,
-
+            pins.gg2,
             // BA0-BA1
             pins.gg4,
             pins.gg5,
@@ -153,64 +151,7 @@ impl SdRamBuilder {
             pins.hh3,  // SDNE0
             pins.ff11, // SDRAS
             pins.hh5,  // SDNWE
-            Is42s32160ge75bli {},
+            As4c16m32msa {},
         )
-    }
-}
-
-// Not yet implemented only boilerplate
-//=====================is42s32160ge_75bli============================
-#[allow(dead_code)]
-mod is42s32160ge_75bli {
-
-    use stm32_fmc::{SdramChip, SdramConfiguration, SdramTiming};
-
-    const BURST_LENGTH_1: u16 = 0x0000;
-    const BURST_LENGTH_2: u16 = 0x0001;
-    const BURST_LENGTH_4: u16 = 0x0002;
-    const BURST_LENGTH_8: u16 = 0x0004;
-    const BURST_TYPE_SEQUENTIAL: u16 = 0x0000;
-    const BURST_TYPE_INTERLEAVED: u16 = 0x0008;
-    const CAS_LATENCY_2: u16 = 0x0020;
-    const CAS_LATENCY_3: u16 = 0x0030;
-    const OPERATING_MODE_STANDARD: u16 = 0x0000;
-    const WRITEBURST_MODE_PROGRAMMED: u16 = 0x0000;
-    const WRITEBURST_MODE_SINGLE: u16 = 0x0200;
-
-    #[derive(Clone, Copy, Debug, PartialEq)]
-    pub struct Is42s32160ge75bli {}
-
-    impl SdramChip for Is42s32160ge75bli {
-        /// Value of the mode register
-        const MODE_REGISTER: u16 = BURST_LENGTH_1
-            | BURST_TYPE_SEQUENTIAL
-            | CAS_LATENCY_3
-            | OPERATING_MODE_STANDARD
-            | WRITEBURST_MODE_SINGLE;
-
-        /// Timing Parameters
-        const TIMING: SdramTiming = SdramTiming {
-            startup_delay_ns: 100_000,    // 100 µs
-            max_sd_clock_hz: 100_000_000, // 100 MHz
-            refresh_period_ns: 15_625,    // 64ms / (4096 rows) = 15625ns
-            mode_register_to_active: 2,   // tMRD = 2 cycles
-            exit_self_refresh: 7,         // tXSR = 70ns
-            active_to_precharge: 4,       // tRAS = 42ns
-            row_cycle: 7,                 // tRC = 70ns
-            row_precharge: 2,             // tRP = 18ns
-            row_to_column: 2,             // tRCD = 18ns
-        };
-
-        /// SDRAM controller configuration
-        const CONFIG: SdramConfiguration = SdramConfiguration {
-            column_bits: 9,
-            row_bits: 12,
-            memory_data_width: 32, // 32-bit
-            internal_banks: 4,     // 4 internal banks
-            cas_latency: 3,        // CAS latency = 3
-            write_protection: false,
-            read_burst: true,
-            read_pipe_delay_cycles: 0,
-        };
     }
 }

@@ -37,9 +37,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf4b9d6a944f767f8e5e0db018570623c85f3d925ac718db4e06d0187adb21c1"
+checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
 name = "byteorder"
@@ -123,9 +123,9 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.20.9"
+version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83b2eb4d90d12bdda5ed17de686c2acb4c57914f8f921b8da7e112b5a36f3fe1"
+checksum = "6f63b86c8a8826a49b8c21f08a2d07338eec8d900540f8630dc76284be802989"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -133,27 +133,27 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.20.9"
+version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "622687fe0bac72a04e5599029151f5796111b90f1baaa9b544d807a5e31cd120"
+checksum = "95133861a8032aaea082871032f5815eb9e98cef03fa916ab4500513994df9e5"
 dependencies = [
  "fnv",
  "ident_case",
  "proc-macro2",
  "quote",
  "strsim",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
 name = "darling_macro"
-version = "0.20.9"
+version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "733cabb43482b1a1b53eee8583c2b9e8684d592215ea83efd305dd31bc2f0178"
+checksum = "d336a2a514f6ccccaa3e09b02d41d35330c07ddf03a62165fcec10bb561c7806"
 dependencies = [
  "darling_core",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
@@ -176,7 +176,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
@@ -200,9 +200,9 @@ dependencies = [
 
 [[package]]
 name = "document-features"
-version = "0.2.8"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef5282ad69563b5fc40319526ba27e0e7363d552a896f0297d54f767717f9b95"
+checksum = "cb6969eaabd2421f8a2775cfd2471a2b634372b4a25d41e3bd647b79912850a0"
 dependencies = [
  "litrs",
 ]
@@ -210,7 +210,7 @@ dependencies = [
 [[package]]
 name = "embassy-embedded-hal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "defmt",
  "embassy-futures",
@@ -227,7 +227,7 @@ dependencies = [
 [[package]]
 name = "embassy-executor"
 version = "0.5.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "cortex-m",
  "critical-section",
@@ -241,23 +241,23 @@ dependencies = [
 [[package]]
 name = "embassy-executor-macros"
 version = "0.4.1"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "darling",
  "proc-macro2",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
 name = "embassy-futures"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 
 [[package]]
 name = "embassy-hal-internal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "cortex-m",
  "critical-section",
@@ -268,7 +268,7 @@ dependencies = [
 [[package]]
 name = "embassy-net-driver"
 version = "0.2.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "defmt",
 ]
@@ -276,10 +276,10 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "bit_field",
- "bitflags 2.5.0",
+ "bitflags 2.6.0",
  "cfg-if",
  "chrono",
  "cortex-m",
@@ -321,7 +321,7 @@ dependencies = [
 [[package]]
 name = "embassy-sync"
 version = "0.6.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -334,7 +334,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.3.1"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -352,7 +352,7 @@ dependencies = [
 [[package]]
 name = "embassy-time-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "document-features",
 ]
@@ -360,12 +360,12 @@ dependencies = [
 [[package]]
 name = "embassy-time-queue-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 
 [[package]]
 name = "embassy-usb-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "defmt",
 ]
@@ -373,7 +373,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb-synopsys-otg"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git#26e660722cca9151e5a9331c328421145509ab20"
+source = "git+https://github.com/kalkyl/embassy.git?branch=fmc-a13#a4ca71bc23ee3e6abda8353da500208945f6ce37"
 dependencies = [
  "critical-section",
  "embassy-sync",
@@ -606,9 +606,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22244ce15aa966053a896d1accb3a6e68469b97c7f33f284b99f0d576879fc23"
+checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
  "unicode-ident",
 ]
@@ -691,7 +691,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac"
 version = "15.0.0"
-source = "git+https://github.com/embassy-rs/stm32-data-generated?tag=stm32-data-a8ab0a3421ed0ca4b282f54028a0a2decacd8631#e30c7694016fa9a326f153fff84dedb0c02b8676"
+source = "git+https://github.com/embassy-rs/stm32-data-generated?tag=stm32-data-e0cfd165fd8fffaa0df66a35eeca83b228496645#bf02c35d063e1823a156468497b448ae3350a255"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -716,9 +716,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.66"
+version = "2.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c42f3f41a2de00b01c0aaad383c5a45241efc8b2d1eda5661812fda5f3cdcff5"
+checksum = "b146dcf730474b4bcd16c311627b31ede9ab149045db4d6088b3becaea046462"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -727,22 +727,22 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.61"
+version = "1.0.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c546c80d6be4bc6a00c0f01730c08df82eaa7a7a61f11d656526506112cc1709"
+checksum = "c0342370b38b6a11b6cc11d6a805569958d54cfa061a29969c3b5ce2ea405724"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.61"
+version = "1.0.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c3384250002a6d5af4d114f2845d37b57521033f30d5c3f46c4d70e1197533"
+checksum = "a4558b58466b9ad7ca0f102865eccc95938dca1a74a856f2b57b6629050da261"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
