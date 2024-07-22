@@ -42,7 +42,11 @@ impl FlashBuilder {
         let qspi = Qspi::new_blocking_bank1(
             qspi, pins.IO0, pins.IO1, pins.IO2, pins.IO3, pins.SCK, pins.CS, config,
         );
-        Flash { qspi }
+        let mut result = Flash { qspi };
+        result.enable_qpi_mode();
+        result.reset_status_register();
+        result.reset_read_register();
+        result
     }
 }
 
