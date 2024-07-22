@@ -195,4 +195,37 @@ impl<'a> Flash<'a> {
 
         self.wait_for_write();
     }
+    fn reset_status_register(&mut self) {
+        self.enable_write();
+
+        let transaction = TransferConfig {
+            iwidth: QspiWidth::SING,
+            awidth: QspiWidth::SING,
+            dwidth: QspiWidth::NONE,
+            instruction: WRITE_STATUS_REGISTRY_CMD,
+            address: Some(0b0000_0010),
+            dummy: DummyCycles::_0,
+        };
+
+        self.qspi.blocking_write(&[], transaction);
+
+        self.wait_for_write();
+    }
+
+    fn reset_read_register(&mut self) {
+        self.enable_write();
+
+        let transaction = TransferConfig {
+            iwidth: QspiWidth::SING,
+            awidth: QspiWidth::SING,
+            dwidth: QspiWidth::NONE,
+            instruction: SET_READ_PARAMETERS_CMD,
+            address: Some(0b1111_1000),
+            dummy: DummyCycles::_0,
+        };
+
+        self.qspi.blocking_write(&[], transaction);
+
+        self.wait_for_write();
+    }
 }
