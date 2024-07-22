@@ -60,7 +60,7 @@ impl<'a> Flash<'a> {
                 dwidth: QspiWidth::QUAD,
                 instruction: FAST_READ_QUAD_IO_CMD,
                 address: Some(address + i as u32 * 32),
-                dummy: DummyCycles::_0,
+                dummy: DummyCycles::_8,
             };
             self.qspi.blocking_read(chunk, transaction);
         }
