@@ -176,4 +176,21 @@ impl<'a> Flash<'a> {
             }
         }
     }
+
+    fn enable_qpi_mode(&mut self) {
+        self.enable_write();
+
+        let transaction = TransferConfig {
+            iwidth: QspiWidth::SING,
+            awidth: QspiWidth::NONE,
+            dwidth: QspiWidth::NONE,
+            instruction: ENTER_QPI_MODE_CMD,
+            address: None,
+            dummy: DummyCycles::_0,
+        };
+
+        self.qspi.blocking_write(&[], transaction);
+
+        self.wait_for_write();
+    }
 }
