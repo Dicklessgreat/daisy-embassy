@@ -2,7 +2,7 @@ use crate::pins::FlashPins;
 use embassy_stm32::{
     self as hal,
     qspi::{
-        enums::{DummyCycles, QspiWidth},
+        enums::{AddressSize, DummyCycles, QspiWidth},
         TransferConfig,
     },
 };
@@ -34,7 +34,8 @@ pub struct FlashBuilder {
 
 impl FlashBuilder {
     pub fn build<'a>(self) -> Flash<'a> {
-        let config = Config::default();
+        let mut config = Config::default();
+        config.address_size = AddressSize::_32bit;
         let Self { pins, qspi } = self;
         let qspi = Qspi::new_blocking_bank1(
             qspi, pins.IO0, pins.IO1, pins.IO2, pins.IO3, pins.SCK, pins.CS, config,
