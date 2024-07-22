@@ -34,8 +34,10 @@ pub struct FlashBuilder {
 
 impl FlashBuilder {
     pub fn build<'a>(self) -> Flash<'a> {
-        let mut config = Config::default();
-        config.address_size = AddressSize::_32bit;
+        let config = Config {
+            address_size: AddressSize::_32bit,
+            ..Default::default()
+        };
         let Self { pins, qspi } = self;
         let qspi = Qspi::new_blocking_bank1(
             qspi, pins.IO0, pins.IO1, pins.IO2, pins.IO3, pins.SCK, pins.CS, config,
