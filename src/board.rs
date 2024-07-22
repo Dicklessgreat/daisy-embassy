@@ -1,3 +1,4 @@
+use crate::flash::FlashBuilder;
 use crate::led::UserLed;
 use crate::pins::*;
 use crate::usb::UsbPeripherals;
@@ -14,7 +15,7 @@ pub struct DaisyBoard<'a> {
     // board peripherals
     pub user_led: UserLed<'a>,
     pub audio_peripherals: AudioPeripherals,
-    pub fmc: (), //TODO
+    pub flash: FlashBuilder, //TODO
     pub sdram: SdRamBuilder,
     pub usb_peripherals: UsbPeripherals,
     // on board "BOOT" button.

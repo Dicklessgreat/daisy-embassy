@@ -1,11 +1,11 @@
 #![no_std]
 pub mod audio;
 pub mod board;
+pub mod flash;
 pub mod led;
 pub mod pins;
 pub mod sdram;
 pub mod usb;
-pub mod flash;
 
 pub use board::DaisyBoard;
 pub use embassy_stm32 as hal;
@@ -98,7 +98,17 @@ macro_rules! new_daisy_board {
                 dma1_ch1: $p.DMA1_CH1,
                 dma1_ch2: $p.DMA1_CH2,
             },
-            fmc: (),
+            flash: daisy_embassy::flash::FlashBuilder {
+                pins: daisy_embassy::pins::FlashPins {
+                    IO0: $p.PF8,
+                    IO1: $p.PF9,
+                    IO2: $p.PF7,
+                    IO3: $p.PF6,
+                    SCK: $p.PF10,
+                    CS: $p.PG6,
+                },
+                qspi: $p.QUADSPI,
+            },
             sdram: daisy_embassy::sdram::SdRamBuilder {
                 pins: daisy_embassy::pins::SdRamPins {
                     dd0: $p.PD0,
