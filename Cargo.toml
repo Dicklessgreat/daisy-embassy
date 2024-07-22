@@ -61,3 +61,6 @@ path = "examples/blinky.rs"
 [[example]]
 name = "sdram"
 path = "examples/sdram.rs"
+[[example]]
+name = "flash"
+path = "examples/flash.rs"
