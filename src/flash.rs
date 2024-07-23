@@ -133,7 +133,7 @@ impl<'a> Flash<'a> {
                 dummy: DummyCycles::_0,
             };
 
-            self.qspi.blocking_write(&[], transaction);
+            self.qspi.command(transaction);
 
             self.wait_for_write();
 
@@ -161,7 +161,7 @@ impl<'a> Flash<'a> {
             dummy: DummyCycles::_0,
         };
 
-        self.qspi.blocking_write(&[], transaction);
+        self.qspi.command(transaction);
     }
     fn wait_for_write(&mut self) {
         loop {
@@ -195,7 +195,7 @@ impl<'a> Flash<'a> {
             dummy: DummyCycles::_0,
         };
 
-        self.qspi.blocking_write(&[], transaction);
+        self.qspi.command(transaction);
 
         self.wait_for_write();
     }
@@ -211,7 +211,7 @@ impl<'a> Flash<'a> {
             dummy: DummyCycles::_0,
         };
 
-        self.qspi.blocking_write(&[], transaction);
+        self.qspi.command(transaction);
 
         self.wait_for_write();
     }
@@ -228,7 +228,7 @@ impl<'a> Flash<'a> {
             dummy: DummyCycles::_0,
         };
 
-        self.qspi.blocking_write(&[], transaction);
+        self.qspi.command(transaction);
 
         self.wait_for_write();
     }
