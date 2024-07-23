@@ -1,4 +1,5 @@
 use crate::pins::FlashPins;
+use defmt::{debug, info};
 use embassy_stm32::{
     self as hal,
     qspi::{
@@ -204,14 +205,21 @@ impl<'a> Flash<'a> {
 
         let transaction = TransferConfig {
             iwidth: QspiWidth::SING,
-            awidth: QspiWidth::SING,
+            awidth: QspiWidth::NONE,
             dwidth: QspiWidth::NONE,
             instruction: WRITE_STATUS_REGISTRY_CMD,
-            address: Some(0b0000_0010),
+            address: None,
             dummy: DummyCycles::_0,
         };
 
-        self.qspi.command(transaction);
+        // In daisy crate with stm32h7xx-hal, this data was written as an "address",
+        // but if you give the transaction an address and
+        // call command() in the same way,
+        // you get stuck in an infinite loop.
+        // https://github.com/zlosynth/daisy/blob/c827f2c088412ed195800ded68218dc0375ed573/src/flash.rs#L223
+        // https://github.com/stm32-rs/stm32h7xx-hal/blob/5166da8a5485d51e60a42d3a564d1edae0c8e164/src/xspi/mod.rs#L795
+        // also see IS25LP032 datasheet p.44 "8.16 WRITE STATUS REGISTER OPERATION (WRSR, 01h)"
+        self.qspi.blocking_write(&[0b0000_0010], transaction);
 
         self.wait_for_write();
     }
@@ -221,14 +229,20 @@ impl<'a> Flash<'a> {
 
         let transaction = TransferConfig {
             iwidth: QspiWidth::SING,
-            awidth: QspiWidth::SING,
+            awidth: QspiWidth::NONE,
             dwidth: QspiWidth::NONE,
             instruction: SET_READ_PARAMETERS_CMD,
-            address: Some(0b1111_1000),
+            address: None,
             dummy: DummyCycles::_0,
         };
 
-        self.qspi.command(transaction);
+        // In daisy crate with stm32h7xx-hal, this data was written as an "address",
+        // but if you give the transaction an address and
+        // call command() in the same way,
+        // you get stuck in an infinite loop.
+        // https://github.com/zlosynth/daisy/blob/c827f2c088412ed195800ded68218dc0375ed573/src/flash.rs#L240        // https://github.com/stm32-rs/stm32h7xx-hal/blob/5166da8a5485d51e60a42d3a564d1edae0c8e164/src/xspi/mod.rs#L795
+        // also see IS25LP032 datasheet p.51 "8.23 SET READ PARAMETERS OPERATION (SRP, C0h)"
+        self.qspi.blocking_write(&[0b1111_1000], transaction);
 
         self.wait_for_write();
     }
