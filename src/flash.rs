@@ -102,15 +102,15 @@ impl<'a> Flash<'a> {
         self.exec_command(CMD_WRITE_ENABLE);
     }
 
-    pub fn read_id(&mut self) -> [u8; 3] {
-        let mut buffer = [0; 3];
+    pub fn read_id(&mut self) -> [u8; 2] {
+        let mut buffer = [0; 2];
         let transaction: TransferConfig = TransferConfig {
             iwidth: QspiWidth::SING,
             awidth: QspiWidth::NONE,
             dwidth: QspiWidth::SING,
             instruction: CMD_READ_ID,
             address: None,
-            dummy: DummyCycles::_0,
+            dummy: DummyCycles::_3,
         };
         self.qspi.blocking_read(&mut buffer, transaction);
         buffer
