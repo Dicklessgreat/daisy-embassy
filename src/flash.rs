@@ -118,15 +118,18 @@ impl<'a> Flash<'a> {
 
     pub fn read_uuid(&mut self) -> [u8; 16] {
         let mut buffer = [0; 16];
-        let transaction: TransferConfig = TransferConfig {
-            iwidth: QspiWidth::SING,
-            awidth: QspiWidth::SING,
-            dwidth: QspiWidth::SING,
-            instruction: CMD_READ_UUID,
-            address: Some(0),
-            dummy: DummyCycles::_8,
-        };
-        self.qspi.blocking_read(&mut buffer, transaction);
+        for i in 0..16 {
+            let transaction: TransferConfig = TransferConfig {
+                iwidth: QspiWidth::SING,
+                awidth: QspiWidth::SING,
+                dwidth: QspiWidth::SING,
+                instruction: CMD_READ_UUID,
+                address: Some(i as u32),
+                dummy: DummyCycles::_8,
+            };
+            self.qspi
+                .blocking_read(&mut buffer[i..(i + 1)], transaction);
+        }
         buffer
     }
 
