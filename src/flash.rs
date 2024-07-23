@@ -110,7 +110,7 @@ impl<'a> Flash<'a> {
             dwidth: QspiWidth::SING,
             instruction: CMD_READ_ID,
             address: None,
-            dummy: DummyCycles::_3,
+            dummy: DummyCycles::_24,
         };
         self.qspi.blocking_read(&mut buffer, transaction);
         buffer
