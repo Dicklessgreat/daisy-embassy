@@ -3,7 +3,7 @@ use defmt::{debug, info};
 use embassy_stm32::{
     self as hal,
     qspi::{
-        enums::{AddressSize, DummyCycles, QspiWidth},
+        enums::{AddressSize, DummyCycles, MemorySize, QspiWidth},
         TransferConfig,
     },
 };
@@ -52,7 +52,8 @@ pub struct FlashBuilder {
 impl FlashBuilder {
     pub fn build<'a>(self) -> Flash<'a> {
         let config = Config {
-            address_size: AddressSize::_32bit,
+            memory_size: MemorySize::_8MiB,
+            address_size: AddressSize::_24bit,
             ..Default::default()
         };
         let Self { pins, qspi } = self;
