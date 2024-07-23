@@ -16,21 +16,25 @@ async fn main(_spawner: Spawner) {
     const ADDRESS: u32 = 0x00;
     const SIZE: usize = 8000;
 
+    let mut flash = daisy_p.flash.build();
+
+    info!("sr: {}", flash.read_sr());
+    info!("id: {}", flash.read_id());
+    info!("uuid: {}", flash.read_uuid());
     // Create an array of data to write.
     let mut data: [u8; SIZE] = [0; SIZE];
     for (i, x) in data.iter_mut().enumerate() {
         *x = (i % 256) as u8;
     }
 
-    let mut flash = daisy_p.flash.build();
     // Write it to the flash memory.
     info!("Writting to flash");
-    flash.write(ADDRESS, &data);
+    flash.write_memory(ADDRESS, &data, false);
 
     // Read it back.
     info!("Reading from flash");
     let mut buffer: [u8; SIZE] = [0; SIZE];
-    flash.read(ADDRESS, &mut buffer);
+    flash.read_memory(ADDRESS, &mut buffer, false);
 
     // Compare the read values with those written and lit the LED if they match.
     if data == buffer {
