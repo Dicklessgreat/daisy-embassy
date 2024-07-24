@@ -9,8 +9,20 @@ use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    let p = embassy_stm32::init(Default::default());
-    info!("Hello World!");
+    let mut config = daisy_embassy::default_rcc();
+    {
+        use embassy_stm32::rcc::*;
+        config.rcc.pll2 = Some(Pll {
+            prediv: PllPreDiv::DIV4,
+            mul: PllMul::MUL216,
+            divp: None,
+            divq: None,
+            divr: Some(PllDiv::DIV4), // 16mhz / 4 * 216 / 4 = 216Mhz,
+            source: PllSource::HSE,
+        });
+        config.rcc.mux.quadspisel = embassy_stm32::pac::rcc::vals::Fmcsel::PLL2_R;
+    }
+    let p = embassy_stm32::init(config);
     let daisy_p = new_daisy_board!(p);
     // We will be using the first 8000 bytes of the flash.
     const ADDRESS: u32 = 0x00;
