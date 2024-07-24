@@ -58,9 +58,4 @@ async fn main(_spawner: Spawner) {
     } else {
         info!("Read value does not match what was written");
     }
-
-    // Sleep forever.
-    loop {
-        cortex_m::asm::nop();
-    }
 }
