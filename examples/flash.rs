@@ -38,7 +38,10 @@ async fn main(_spawner: Spawner) {
     for (i, x) in data.iter_mut().enumerate() {
         *x = (i % 256) as u8;
     }
+    info!("Write buffer: {:?}", data[0..32]);
 
+    info!("erase sector");
+    flash.erase_sector(ADDRESS);
     // Write it to the flash memory.
     info!("Writting to flash");
     flash.write_memory(ADDRESS, &data, false);
@@ -47,6 +50,7 @@ async fn main(_spawner: Spawner) {
     info!("Reading from flash");
     let mut buffer: [u8; SIZE] = [0; SIZE];
     flash.read_memory(ADDRESS, &mut buffer, false);
+    info!("Read buffer: {:?}", buffer[0..32]);
 
     // Compare the read values with those written and lit the LED if they match.
     if data == buffer {
