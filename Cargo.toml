@@ -53,9 +53,6 @@ path = "examples/passthrough.rs"
 name = "triangle_wave_tx"
 path = "examples/triangle_wave_tx.rs"
 [[example]]
-name = "_minimum_sai"
-path = "examples/_minimum_sai.rs"
-[[example]]
 name = "blinky"
 path = "examples/blinky.rs"
 [[example]]
@@ -64,3 +61,9 @@ path = "examples/sdram.rs"
 [[example]]
 name = "flash"
 path = "examples/flash.rs"
+[[example]]
+name = "_minimum_sai"
+path = "examples/_minimum_sai.rs"
+[[example]]
+name = "_minimum_qspi"
+path = "examples/_minimum_qspi.rs"
