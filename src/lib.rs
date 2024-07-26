@@ -13,8 +13,6 @@ pub use embassy_stm32 as hal;
 pub fn default_rcc() -> hal::Config {
     let mut config = hal::Config::default();
     use hal::rcc::*;
-    config.rcc.hsi = Some(HSIPrescaler::DIV1);
-    config.rcc.csi = true;
     config.rcc.hsi48 = Some(Hsi48Config {
         sync_from_usb: true,
     });
