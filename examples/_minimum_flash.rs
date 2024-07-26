@@ -279,12 +279,13 @@ async fn main(_spawner: Spawner) {
 
     let p = hal::init(config);
 
-    let mut config = hal::qspi::Config::default();
-    config.address_size = AddressSize::_24bit;
-    config.memory_size = MemorySize::_8MiB;
-    config.prescaler = 1;
-    config.cs_high_time = ChipSelectHighTime::_2Cycle;
-    config.fifo_threshold = FIFOThresholdLevel::_1Bytes;
+    let config = hal::qspi::Config {
+        memory_size: MemorySize::_8MiB,
+        address_size: AddressSize::_24bit,
+        prescaler: 1,
+        cs_high_time: ChipSelectHighTime::_2Cycle,
+        fifo_threshold: FIFOThresholdLevel::_1Bytes,
+    };
 
     let qspi =
         Qspi::new_blocking_bank1(p.QUADSPI, p.PF8, p.PF9, p.PF7, p.PF6, p.PF10, p.PG6, config);
