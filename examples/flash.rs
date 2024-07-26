@@ -30,8 +30,6 @@ async fn main(_spawner: Spawner) {
 
     let mut flash = daisy_p.flash.build();
 
-    info!("sr: {}", flash.read_sr());
-    info!("id: {}", flash.read_id());
     info!("uuid: {}", flash.read_uuid());
     // Create an array of data to write.
     let mut data: [u8; SIZE] = [0; SIZE];
@@ -40,19 +38,16 @@ async fn main(_spawner: Spawner) {
     }
     info!("Write buffer: {:?}", data[0..32]);
 
-    info!("erase sector");
-    flash.erase_sector(ADDRESS);
     // Write it to the flash memory.
     info!("Writting to flash");
-    flash.write_memory(ADDRESS, &data, false);
+    flash.write(ADDRESS, &data);
 
     // Read it back.
     info!("Reading from flash");
     let mut buffer: [u8; SIZE] = [0; SIZE];
-    flash.read_memory(ADDRESS, &mut buffer, false);
+    flash.read(ADDRESS, &mut buffer);
     info!("Read buffer: {:?}", buffer[0..32]);
 
-    // Compare the read values with those written and lit the LED if they match.
     if data == buffer {
         info!("Everything went as expected");
     } else {
