@@ -70,8 +70,5 @@ path = "examples/flash.rs"
 name = "_minimum_sai"
 path = "examples/_minimum_sai.rs"
 [[example]]
-name = "_minimum_qspi"
-path = "examples/_minimum_qspi.rs"
-[[example]]
 name = "_minimum_flash"
 path = "examples/_minimum_flash.rs"
