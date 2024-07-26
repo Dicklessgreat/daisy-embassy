@@ -13,6 +13,11 @@ pub use embassy_stm32 as hal;
 pub fn default_rcc() -> hal::Config {
     let mut config = hal::Config::default();
     use hal::rcc::*;
+    config.rcc.hsi = Some(HSIPrescaler::DIV1);
+    config.rcc.csi = true;
+    config.rcc.hsi48 = Some(Hsi48Config {
+        sync_from_usb: true,
+    });
     config.rcc.pll1 = Some(Pll {
         source: PllSource::HSE,
         prediv: PllPreDiv::DIV4,
@@ -40,6 +45,7 @@ pub fn default_rcc() -> hal::Config {
     config.rcc.sys = Sysclk::PLL1_P; // 480MHz
     config.rcc.mux.fmcsel = hal::pac::rcc::vals::Fmcsel::PLL2_R; // 100MHz
     config.rcc.mux.sai1sel = hal::pac::rcc::vals::Saisel::PLL3_P; // 49.2MHz
+    config.rcc.mux.usbsel = mux::Usbsel::HSI48;
     config.rcc.ahb_pre = AHBPrescaler::DIV2; // 240 MHz
     config.rcc.apb1_pre = APBPrescaler::DIV2; // 120 MHz
     config.rcc.apb2_pre = APBPrescaler::DIV2; // 120 MHz
