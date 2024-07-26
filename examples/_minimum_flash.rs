@@ -58,18 +58,15 @@ mod flash {
         pub fn read(&mut self, address: u32, buffer: &mut [u8]) {
             assert!(address <= MAX_ADDRESS);
 
-            // Data must be queried by chunks of 32 (limitation of `read_extended`)
-            for (i, chunk) in buffer.chunks_mut(32).enumerate() {
-                let transaction = TransferConfig {
-                    iwidth: QspiWidth::QUAD,
-                    awidth: QspiWidth::QUAD,
-                    dwidth: QspiWidth::QUAD,
-                    instruction: FAST_READ_QUAD_IO_CMD,
-                    address: Some(address + i as u32 * 32),
-                    dummy: DummyCycles::_8,
-                };
-                self.qspi.blocking_read(chunk, transaction);
-            }
+            let transaction = TransferConfig {
+                iwidth: QspiWidth::QUAD,
+                awidth: QspiWidth::QUAD,
+                dwidth: QspiWidth::QUAD,
+                instruction: FAST_READ_QUAD_IO_CMD,
+                address: Some(address),
+                dummy: DummyCycles::_8,
+            };
+            self.qspi.blocking_read(buffer, transaction);
         }
 
         pub fn read_uuid(&mut self) -> [u8; 16] {
