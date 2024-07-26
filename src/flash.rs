@@ -65,7 +65,7 @@ impl<'a> Flash<'a> {
             dwidth: QspiWidth::QUAD,
             instruction: FAST_READ_QUAD_IO_CMD,
             address: Some(address),
-            dummy: DummyCycles::_8,
+            dummy: DummyCycles::_6,
         };
         self.qspi.blocking_read(buffer, transaction);
     }
