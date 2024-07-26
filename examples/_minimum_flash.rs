@@ -1,3 +1,6 @@
+//! this example does not belong to daisy_embassy,
+//! but is to check proper settings of stm32h750's QSPI with IS25LP064.
+
 #![no_std]
 #![no_main]
 
@@ -63,7 +66,7 @@ mod flash {
                     dwidth: QspiWidth::QUAD,
                     instruction: FAST_READ_QUAD_IO_CMD,
                     address: Some(address + i as u32 * 32),
-                    dummy: DummyCycles::_6,
+                    dummy: DummyCycles::_8,
                 };
                 self.qspi.blocking_read(chunk, transaction);
             }
@@ -143,7 +146,7 @@ mod flash {
                     dummy: DummyCycles::_0,
                 };
 
-                self.qspi.blocking_write(&[], transaction);
+                self.qspi.command(transaction);
                 self.wait_for_write();
 
                 // Calculate number of bytes between address and end of the sector.
@@ -170,7 +173,7 @@ mod flash {
                 address: None,
                 dummy: DummyCycles::_0,
             };
-            self.qspi.blocking_write(&[], transaction);
+            self.qspi.command(transaction);
         }
 
         fn wait_for_write(&mut self) {
@@ -204,7 +207,7 @@ mod flash {
                 address: Some(0b0000_0010),
                 dummy: DummyCycles::_0,
             };
-            self.qspi.blocking_write(&[], transaction);
+            self.qspi.command(transaction);
             self.wait_for_write();
         }
 
@@ -220,7 +223,7 @@ mod flash {
                 address: Some(0b1111_1000),
                 dummy: DummyCycles::_0,
             };
-            self.qspi.blocking_write(&[], transaction);
+            self.qspi.command(transaction);
             self.wait_for_write();
         }
 
@@ -234,7 +237,7 @@ mod flash {
                 address: None,
                 dummy: DummyCycles::_0,
             };
-            self.qspi.blocking_write(&[], transaction);
+            self.qspi.command(transaction);
             self.wait_for_write();
         }
     }
@@ -247,8 +250,8 @@ async fn main(_spawner: Spawner) {
     config.rcc.pll1 = Some(Pll {
         source: PllSource::HSE,
         prediv: PllPreDiv::DIV4,
-        // mul: PllMul::MUL200, // 400MHz
-        mul: PllMul::MUL240, // 480MHz
+        mul: PllMul::MUL200, // 400MHz
+        // mul: PllMul::MUL240, // 480MHz
         divp: Some(PllDiv::DIV2),
         divq: Some(PllDiv::DIV5),
         divr: Some(PllDiv::DIV2),
