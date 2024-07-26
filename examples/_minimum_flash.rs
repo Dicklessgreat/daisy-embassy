@@ -94,28 +94,25 @@ mod flash {
             let mut length = data.len() as u32;
             let mut start_cursor = 0;
 
+            //WRITE_CMD(or PP) allows to write up to 256 bytes, which is as much as PAGE_SIZE.
+            //Let's divide the data into chunks of page size to write to flash
             loop {
                 // Calculate number of bytes between address and end of the page.
                 let page_remainder = PAGE_SIZE - (address & (PAGE_SIZE - 1));
-                // Write data to the page in chunks of 32 (limitation of `write_extended`).
                 let size = page_remainder.min(length) as usize;
-                for (i, chunk) in data[start_cursor..start_cursor + size]
-                    .chunks(32)
-                    .enumerate()
-                {
-                    self.enable_write();
-                    let transaction = TransferConfig {
-                        iwidth: QspiWidth::QUAD,
-                        awidth: QspiWidth::QUAD,
-                        dwidth: QspiWidth::QUAD,
-                        instruction: WRITE_CMD,
-                        address: Some(address + i as u32 * 32),
-                        dummy: DummyCycles::_0,
-                    };
+                self.enable_write();
+                let transaction = TransferConfig {
+                    iwidth: QspiWidth::QUAD,
+                    awidth: QspiWidth::QUAD,
+                    dwidth: QspiWidth::QUAD,
+                    instruction: WRITE_CMD,
+                    address: Some(address),
+                    dummy: DummyCycles::_0,
+                };
 
-                    self.qspi.blocking_write(chunk, transaction);
-                    self.wait_for_write();
-                }
+                self.qspi
+                    .blocking_write(&data[start_cursor..start_cursor + size], transaction);
+                self.wait_for_write();
                 start_cursor += size;
 
                 // Stop if this was the last needed page.
