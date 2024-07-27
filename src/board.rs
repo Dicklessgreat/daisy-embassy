@@ -12,10 +12,9 @@ bind_interrupts!(pub struct Irqs {
 
 pub struct DaisyBoard<'a> {
     pub pins: DaisyPins,
-    // board peripherals
     pub user_led: UserLed<'a>,
     pub audio_peripherals: AudioPeripherals,
-    pub flash: FlashBuilder, //TODO
+    pub flash: FlashBuilder,
     pub sdram: SdRamBuilder,
     pub usb_peripherals: UsbPeripherals,
     // on board "BOOT" button.
