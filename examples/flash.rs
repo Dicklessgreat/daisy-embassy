@@ -2,7 +2,7 @@
 #![no_main]
 
 use daisy_embassy::new_daisy_board;
-use defmt::info;
+use defmt::{error, info};
 use embassy_executor::Spawner;
 
 use {defmt_rtt as _, panic_probe as _};
@@ -40,6 +40,6 @@ async fn main(_spawner: Spawner) {
     if data == buffer {
         info!("Everything went as expected");
     } else {
-        info!("Read value does not match what was written");
+        error!("Read value does not match what was written");
     }
 }
