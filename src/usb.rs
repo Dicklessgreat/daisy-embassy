@@ -15,13 +15,7 @@ pub struct UsbPeripherals {
 }
 
 impl UsbPeripherals {
-    pub fn build(self) -> DaisyUsb {
-        let mut config = Config::default();
-        // Do not enable vbus_detection. This is a safe default that works in all boards.
-        // However, if your USB device is self-powered (can stay powered on if USB is unplugged), you need
-        // to enable vbus_detection to comply with the USB spec. If you enable it, the board
-        // has to support it or USB won't work at all. See docs on `vbus_detection` for details.
-        config.vbus_detection = false;
+    pub fn build(self, config: Config) -> DaisyUsb {
         static EP_OUT_BUFFER: StaticCell<[u8; 256]> = StaticCell::new();
         let ep_out_buffer = EP_OUT_BUFFER.init([0; 256]);
         Driver::new_fs(
