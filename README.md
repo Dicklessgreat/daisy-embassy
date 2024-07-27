@@ -8,9 +8,6 @@ I have referred to the following:
 
 Run examples with `cargo run --example <example_name>`
 
-Tell me how to properly set up:
-- RCC
-
 Let's discuss:
 - design interfaces/methods
 - audio buffer. zerocopy? DMA or SAI interrupt?
