@@ -6,7 +6,7 @@
 use defmt::{panic, *};
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
-use embassy_stm32::usb::{Driver, Instance};
+use embassy_stm32::usb::{Config, Driver, Instance};
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::driver::EndpointError;
 use embassy_usb::Builder;
@@ -25,7 +25,14 @@ async fn main(_spawner: Spawner) {
 
     let board = daisy_embassy::new_daisy_board!(p);
 
-    let driver = board.usb_peripherals.build();
+    let mut config = Config::default();
+    // Do not enable vbus_detection. This is a safe default that works in all boards.
+    // However, if your USB device is self-powered (can stay powered on if USB is unplugged), you need
+    // to enable vbus_detection to comply with the USB spec. If you enable it, the board
+    // has to support it or USB won't work at all. See docs on `vbus_detection` for details.
+    config.vbus_detection = false;
+
+    let driver = board.usb_peripherals.build(config);
 
     // Create embassy-usb Config
     let mut config = embassy_usb::Config::new(0xc0de, 0xcafe);
