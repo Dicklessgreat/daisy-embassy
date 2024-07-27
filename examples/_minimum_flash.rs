@@ -12,7 +12,6 @@ use embassy_stm32::{
         enums::{AddressSize, ChipSelectHighTime, FIFOThresholdLevel, MemorySize},
         Qspi,
     },
-    time::Hertz,
 };
 use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _};
@@ -64,7 +63,7 @@ mod flash {
                 dwidth: QspiWidth::QUAD,
                 instruction: FAST_READ_QUAD_IO_CMD,
                 address: Some(address),
-                dummy: DummyCycles::_8,
+                dummy: DummyCycles::_6,
             };
             self.qspi.blocking_read(buffer, transaction);
         }
@@ -239,38 +238,7 @@ mod flash {
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    let mut config = hal::Config::default();
-    use hal::rcc::*;
-    config.rcc.pll1 = Some(Pll {
-        source: PllSource::HSE,
-        prediv: PllPreDiv::DIV4,
-        mul: PllMul::MUL200, // 400MHz
-        // mul: PllMul::MUL240, // 480MHz
-        divp: Some(PllDiv::DIV2),
-        divq: Some(PllDiv::DIV5),
-        divr: Some(PllDiv::DIV2),
-    });
-    config.rcc.pll3 = Some(Pll {
-        source: PllSource::HSE,
-        prediv: PllPreDiv::DIV6,
-        mul: PllMul::MUL295,
-        divp: Some(PllDiv::DIV16),
-        divq: Some(PllDiv::DIV4),
-        divr: Some(PllDiv::DIV32),
-    });
-    config.rcc.sys = Sysclk::PLL1_P;
-    config.rcc.mux.sai1sel = hal::pac::rcc::vals::Saisel::PLL3_P;
-
-    config.rcc.ahb_pre = AHBPrescaler::DIV2; // 200 Mhz
-    config.rcc.apb1_pre = APBPrescaler::DIV2; // 100 Mhz
-    config.rcc.apb2_pre = APBPrescaler::DIV2; // 100 Mhz
-    config.rcc.apb3_pre = APBPrescaler::DIV2; // 100 Mhz
-    config.rcc.apb4_pre = APBPrescaler::DIV2; // 100 Mhz
-    config.rcc.hse = Some(Hse {
-        freq: Hertz::mhz(16),
-        mode: HseMode::Oscillator,
-    });
-
+    let config = daisy_embassy::default_rcc();
     let p = hal::init(config);
 
     let config = hal::qspi::Config {
