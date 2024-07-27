@@ -24,6 +24,7 @@ defmt-rtt = "0.4.1"
 panic-probe = { version = "0.3.2", features = ["print-defmt"] }
 embassy-executor = { version = "0.5.0", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
 embassy-futures = "0.1.1"
+embassy-usb = "0.2.0"
 
 [patch.crates-io]
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
@@ -31,6 +32,7 @@ embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e
 embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
 embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
 embassy-futures = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
 
 [profile.release]
 codegen-units = 1
@@ -66,6 +68,9 @@ path = "examples/sdram.rs"
 [[example]]
 name = "flash"
 path = "examples/flash.rs"
+[[example]]
+name = "usb_serial"
+path = "examples/usb_serial.rs"
 [[example]]
 name = "_minimum_sai"
 path = "examples/_minimum_sai.rs"
