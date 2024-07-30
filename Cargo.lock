@@ -135,7 +135,6 @@ dependencies = [
  "embassy-usb",
  "grounded",
  "panic-probe",
- "portable-atomic",
  "static_cell",
  "stm32-fmc",
  "wm8731",
