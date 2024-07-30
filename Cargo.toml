@@ -72,6 +72,9 @@ path = "examples/flash.rs"
 name = "usb_serial"
 path = "examples/usb_serial.rs"
 [[example]]
+name = "looper"
+path = "examples/looper.rs"
+[[example]]
 name = "_minimum_sai"
 path = "examples/_minimum_sai.rs"
 [[example]]
