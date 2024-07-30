@@ -1,3 +1,6 @@
+//! This example demonstrates the loop playback of audio mapped on SDRAM.
+//! By setting the D16 pin low, you can record audio from the SAI input.
+//! It overwrites the audio buffer from start to end and automatically stops recording after 10 seconds.
 #![no_std]
 #![no_main]
 
