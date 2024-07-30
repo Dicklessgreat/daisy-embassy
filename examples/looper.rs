@@ -54,7 +54,7 @@ async fn main(_spawner: Spawner) {
         let mut pp = 0;
         loop {
             let rx = from_interface.receive().await;
-            // if triggered record, record incoming buffer till loop buffer is full
+            // if triggered record, record incoming buffer till the loop buffer is full
             if RECORD.load(Ordering::SeqCst) {
                 let remain = BL.min(LOOPER_LENGTH - rp);
                 loop_buffer[rp..(rp + remain)].copy_from_slice(rx);
