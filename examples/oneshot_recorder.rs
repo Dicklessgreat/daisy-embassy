@@ -102,3 +102,68 @@ async fn main(_spawner: Spawner) {
     };
     join4(interface.start(), audio_callback_fut, record_fut, dump_fut).await;
 }
+
+/// 16bit, 48KHz canonical wav container header
+fn wav_header() -> [u8; 44] {
+    let mut result = [0; 44];
+    //Note chunk sizes are little endian
+    //RIFF chunk
+    result[0] = b'R';
+    result[1] = b'I';
+    result[2] = b'F';
+    result[3] = b'F';
+    //RIFF chunk size(1920000 + 36 == 0x001d4c24)
+    result[4] = 0x24;
+    result[5] = 0x4c;
+    result[6] = 0x1d;
+    result[7] = 0x00;
+    //WAVE identifier
+    result[8] = b'W';
+    result[9] = b'A';
+    result[10] = b'V';
+    result[11] = b'E';
+    //fmt chunk
+    result[12] = b'f';
+    result[13] = b'm';
+    result[14] = b't';
+    result[15] = b' ';
+    //fmt size
+    result[16] = 0x10;
+    result[17] = 0x00;
+    result[18] = 0x00;
+    result[19] = 0x00;
+    //fmt content
+    //format(1 == pcm)
+    result[20] = 1;
+    result[21] = 0;
+    //num channels
+    result[22] = 2;
+    result[23] = 0;
+    //sampling rate(48000 == 0x0000bb80)
+    result[24] = 0x80;
+    result[25] = 0xbb;
+    result[26] = 0;
+    result[27] = 0;
+    //bytes per sec
+    result[28] = 0x00;
+    result[29] = 0xee;
+    result[30] = 0x02;
+    result[31] = 0x00;
+    //I forgot what this is
+    result[32] = 0x04;
+    result[33] = 0x00;
+    // bits per sample(0x0010 == 16bit)
+    result[34] = 0x10;
+    result[35] = 0x00;
+    //data chunk
+    result[36] = b'd';
+    result[37] = b'a';
+    result[38] = b't';
+    result[39] = b'a';
+    //data size(960000 * 16 / 8 = 1_920_000 == 0x001d4c00)
+    result[40] = 0x00;
+    result[41] = 0x4c;
+    result[42] = 0x1d;
+    result[43] = 0x00;
+    result
+}
