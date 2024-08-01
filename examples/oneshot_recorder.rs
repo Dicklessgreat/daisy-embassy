@@ -18,7 +18,7 @@ use embassy_stm32::{
     time::Hertz,
 };
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel, mutex::Mutex};
-use embassy_time::Delay;
+use embassy_time::{Delay, Timer};
 use embedded_sdmmc::{self, SdCard, VolumeIdx, VolumeManager};
 use {defmt_rtt as _, panic_probe as _};
 
@@ -102,6 +102,7 @@ async fn main(_spawner: Spawner) {
             record_pin.wait_for_low().await;
             info!("record!!");
             RECORD.store(true, Ordering::SeqCst);
+            Timer::after_secs(10).await;
         }
     };
     let event_rx = event.receiver();
