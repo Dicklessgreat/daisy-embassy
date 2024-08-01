@@ -46,6 +46,7 @@ async fn main(_spawner: Spawner) {
         Mutex::new(board.sdram.build(&mut c.MPU, &mut c.SCB));
     let event: Channel<CriticalSectionRawMutex, RecordingHasFinished, 1> = Channel::new();
     let event_tx = event.sender();
+    let led: Mutex<CriticalSectionRawMutex, _> = Mutex::new(board.user_led);
 
     let audio_callback_fut = async {
         // Block Length
@@ -107,6 +108,7 @@ async fn main(_spawner: Spawner) {
                 .compare_exchange(IDLE, RECORDING, Ordering::SeqCst, Ordering::SeqCst)
                 .is_ok()
             {
+                led.lock().await.on();
                 info!("record!!");
             };
             Timer::after_secs(10).await;
@@ -172,6 +174,7 @@ async fn main(_spawner: Spawner) {
             unwrap!(file.flush());
             info!("finish flushing to sd card!!");
             STATE.store(IDLE, Ordering::SeqCst);
+            led.lock().await.off();
         }
     };
     join4(interface.start(), audio_callback_fut, record_fut, dump_fut).await;
