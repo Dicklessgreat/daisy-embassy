@@ -152,12 +152,13 @@ async fn main(_spawner: Spawner) {
                 core::slice::from_raw_parts_mut(ram_ptr, SDRAM_SIZE / core::mem::size_of::<u32>())
             };
             unwrap!(file.write(&wav_header()));
-            for chunk in loop_buffer[..RECORD_LENGTH].chunks(1 << 15) {
-                let mut tmp = [0; 1 << 16];
+            for chunk in loop_buffer[..RECORD_LENGTH].chunks(1 << 10) {
+                let mut tmp = [0; (1 << 10) * 3];
                 for (i, smp) in chunk.iter().enumerate() {
-                    let bytes = ((smp >> 8) as u16).to_le_bytes();
-                    tmp[i * 2] = bytes[0];
-                    tmp[i * 2 + 1] = bytes[1];
+                    let bytes = smp.to_le_bytes();
+                    tmp[i * 3] = bytes[0];
+                    tmp[i * 3 + 1] = bytes[1];
+                    tmp[i * 3 + 2] = bytes[2];
                 }
                 unwrap!(file.write(&tmp));
             }
@@ -168,7 +169,7 @@ async fn main(_spawner: Spawner) {
     join4(interface.start(), audio_callback_fut, record_fut, dump_fut).await;
 }
 
-/// 16bit, 48KHz canonical wav container header
+/// 24bit, 48KHz canonical wav container header
 fn wav_header() -> [u8; 44] {
     let mut result = [0; 44];
     //Note chunk sizes are little endian
@@ -177,10 +178,10 @@ fn wav_header() -> [u8; 44] {
     result[1] = b'I';
     result[2] = b'F';
     result[3] = b'F';
-    //RIFF chunk size(1920000 + 36 == 0x001d4c24)
+    //RIFF chunk size(2880000 + 36 == 0x002bf224)
     result[4] = 0x24;
-    result[5] = 0x4c;
-    result[6] = 0x1d;
+    result[5] = 0xf2;
+    result[6] = 0x2b;
     result[7] = 0x00;
     //WAVE identifier
     result[8] = b'W';
@@ -211,24 +212,24 @@ fn wav_header() -> [u8; 44] {
     result[27] = 0;
     //bytes per sec
     result[28] = 0x00;
-    result[29] = 0xee;
-    result[30] = 0x02;
+    result[29] = 0x65;
+    result[30] = 0x04;
     result[31] = 0x00;
     //I forgot what this is
     result[32] = 0x04;
     result[33] = 0x00;
-    // bits per sample(0x0010 == 16bit)
-    result[34] = 0x10;
+    // bits per sample(0x0018 == 24bit)
+    result[34] = 0x18;
     result[35] = 0x00;
     //data chunk
     result[36] = b'd';
     result[37] = b'a';
     result[38] = b't';
     result[39] = b'a';
-    //data size(960000 * 16 / 8 = 1_920_000 == 0x001d4c00)
+    //data size(960000 * 24 / 8 = 2880000 == 0x002bf200)
     result[40] = 0x00;
-    result[41] = 0x4c;
-    result[42] = 0x1d;
+    result[41] = 0xf2;
+    result[42] = 0x2b;
     result[43] = 0x00;
     result
 }
