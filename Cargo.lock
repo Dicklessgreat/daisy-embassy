@@ -133,6 +133,8 @@ dependencies = [
  "embassy-sync",
  "embassy-time",
  "embassy-usb",
+ "embedded-hal-bus",
+ "embedded-sdmmc",
  "grounded",
  "panic-probe",
  "static_cell",
@@ -458,6 +460,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-hal-bus"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d3980bf28e8577db59fe2bdb3df868a419469d2cecb363644eea2b6f7797669"
+dependencies = [
+ "critical-section",
+ "embedded-hal 1.0.0",
+ "portable-atomic",
+]
+
+[[package]]
 name = "embedded-hal-nb"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -484,6 +497,18 @@ checksum = "3ff09972d4073aa8c299395be75161d582e7629cd663171d62af73c8d50dba3f"
 dependencies = [
  "defmt",
  "embedded-io",
+]
+
+[[package]]
+name = "embedded-sdmmc"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "150f320125310e179b9e73b081173b349e63c5c7d4ca44db4e5b9121b10387ec"
+dependencies = [
+ "byteorder",
+ "defmt",
+ "embedded-hal 1.0.0",
+ "heapless",
 ]
 
 [[package]]

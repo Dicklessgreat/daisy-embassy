@@ -8,12 +8,18 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_board, sdram::SDRAM_SIZE};
-use defmt::{debug, error, info};
+use defmt::{debug, error, info, unwrap};
 use embassy_executor::Spawner;
 use embassy_futures::join::join4;
-use embassy_stm32::{exti::ExtiInput, gpio::Pull};
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{self, Pull},
+    spi::Spi,
+    time::Hertz,
+};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel, mutex::Mutex};
 use embassy_time::Delay;
+use embedded_sdmmc::{self, SdCard, VolumeIdx, VolumeManager};
 use {defmt_rtt as _, panic_probe as _};
 
 struct RecordingHasFinished;
@@ -99,6 +105,36 @@ async fn main(_spawner: Spawner) {
         }
     };
     let event_rx = event.receiver();
+    let mut spi_config = embassy_stm32::spi::Config::default();
+    // frequency must be low during card initialization
+    spi_config.frequency = Hertz::khz(400);
+    let spi = Spi::new(
+        p.SPI1,
+        board.pins.d8,
+        board.pins.d10,
+        board.pins.d9,
+        p.DMA1_CH0,
+        p.DMA1_CH3,
+        spi_config,
+    );
+    let spi = defmt::unwrap!(embedded_hal_bus::spi::ExclusiveDevice::new(
+        spi,
+        gpio::Output::new(board.pins.d7, gpio::Level::High, gpio::Speed::High),
+        Delay,
+    ));
+    let sdcard = SdCard::new(spi, Delay);
+    let mut vmg0 = VolumeManager::new(sdcard, DummyTimeSource);
+    // initialize sd card by printing out sdcard size
+    info!("sdcard size: {}", defmt::unwrap!(vmg0.device().num_bytes()));
+    spi_config.frequency = Hertz::mhz(15);
+    vmg0.device()
+        .spi(|spi| defmt::unwrap!(spi.bus_mut().set_config(&spi_config)));
+    let mut volume = defmt::unwrap!(vmg0.open_volume(VolumeIdx(0)));
+    let mut dir = defmt::unwrap!(volume.open_root_dir());
+    let mut file = unwrap!(dir.open_file_in_dir(
+        "recorded.wav",
+        embedded_sdmmc::Mode::ReadWriteCreateOrTruncate,
+    ));
     // dump recorded to SD card
     let dump_fut = async {
         loop {
@@ -113,6 +149,16 @@ async fn main(_spawner: Spawner) {
                 // Convert raw pointer to slice
                 core::slice::from_raw_parts_mut(ram_ptr, SDRAM_SIZE / core::mem::size_of::<u32>())
             };
+            unwrap!(file.write(&wav_header()));
+            for chunk in loop_buffer[..RECORD_LENGTH].chunks(128) {
+                let mut tmp = [0; 256];
+                for (i, smp) in chunk.iter().enumerate() {
+                    let bytes = ((smp >> 16) as u16).to_le_bytes();
+                    tmp[i * 2] = bytes[0];
+                    tmp[i * 2 + 1] = bytes[1];
+                }
+                unwrap!(file.write(&tmp));
+            }
         }
     };
     join4(interface.start(), audio_callback_fut, record_fut, dump_fut).await;
@@ -181,4 +227,18 @@ fn wav_header() -> [u8; 44] {
     result[42] = 0x1d;
     result[43] = 0x00;
     result
+}
+
+struct DummyTimeSource;
+impl embedded_sdmmc::TimeSource for DummyTimeSource {
+    fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
+        embedded_sdmmc::Timestamp {
+            year_since_1970: 0,
+            zero_indexed_month: 0,
+            zero_indexed_day: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0,
+        }
+    }
 }
