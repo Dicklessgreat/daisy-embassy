@@ -154,7 +154,7 @@ async fn main(_spawner: Spawner) {
             for chunk in loop_buffer[..RECORD_LENGTH].chunks(1 << 15) {
                 let mut tmp = [0; 1 << 16];
                 for (i, smp) in chunk.iter().enumerate() {
-                    let bytes = ((smp >> 16) as u16).to_le_bytes();
+                    let bytes = ((smp >> 8) as u16).to_le_bytes();
                     tmp[i * 2] = bytes[0];
                     tmp[i * 2 + 1] = bytes[1];
                 }
