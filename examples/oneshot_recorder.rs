@@ -23,7 +23,7 @@ use embedded_sdmmc::{self, SdCard, VolumeIdx, VolumeManager};
 use {defmt_rtt as _, panic_probe as _};
 
 struct RecordingHasFinished;
-//record 48000(Hz) * 10(Sec) * 2(stereo)
+//48000(Hz) * 10(Sec) * 2(stereo)
 const RECORD_LENGTH: usize = 960_000;
 const SILENCE: u32 = u32::MAX / 2;
 static RECORD: AtomicBool = AtomicBool::new(false);
@@ -51,7 +51,7 @@ async fn main(_spawner: Spawner) {
         let mut rp = 0;
         loop {
             let rx = from_interface.receive().await;
-            // if triggered record, record incoming buffer till the loop buffer is full
+            // if triggered record, record incoming buffer till RECORD_LENGTH
             if RECORD.load(Ordering::SeqCst) {
                 // The only time SDRAM is used elsewhere is when flushing recorded sound,
                 // and flushing only happens when the recording has been finished.
@@ -127,6 +127,7 @@ async fn main(_spawner: Spawner) {
     let mut vmg0 = VolumeManager::new(sdcard, DummyTimeSource);
     // initialize sd card by printing out sdcard size
     info!("sdcard size: {}", defmt::unwrap!(vmg0.device().num_bytes()));
+    // now we can set higher baudrate
     spi_config.frequency = Hertz::mhz(15);
     vmg0.device()
         .spi(|spi| defmt::unwrap!(spi.bus_mut().set_config(&spi_config)));
@@ -136,7 +137,7 @@ async fn main(_spawner: Spawner) {
         "recorded.wav",
         embedded_sdmmc::Mode::ReadWriteCreateOrTruncate,
     ));
-    // dump recorded to SD card
+    // dump the recorded to SD card
     let dump_fut = async {
         loop {
             event_rx.receive().await;
