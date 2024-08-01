@@ -5,7 +5,7 @@
 #![no_std]
 #![no_main]
 
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicU8, Ordering};
 
 use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_board, sdram::SDRAM_SIZE};
 use defmt::{debug, error, info, unwrap};
@@ -26,7 +26,10 @@ struct RecordingHasFinished;
 //48000(Hz) * 10(Sec) * 2(stereo)
 const RECORD_LENGTH: usize = 960_000;
 const SILENCE: u32 = u32::MAX / 2;
-static RECORD: AtomicBool = AtomicBool::new(false);
+static STATE: AtomicU8 = AtomicU8::new(0);
+const IDLE: u8 = 0;
+const RECORDING: u8 = 1;
+const FLUSHING: u8 = 2;
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -52,7 +55,7 @@ async fn main(_spawner: Spawner) {
         loop {
             let rx = from_interface.receive().await;
             // if triggered record, record incoming buffer till RECORD_LENGTH
-            if RECORD.load(Ordering::SeqCst) {
+            if STATE.load(Ordering::SeqCst) == RECORDING {
                 // The only time SDRAM is used elsewhere is when flushing recorded sound,
                 // and flushing only happens when the recording has been finished.
                 // When it fails to acquire lock and some audio samples are missed,
@@ -75,7 +78,7 @@ async fn main(_spawner: Spawner) {
                     rp += BL;
                     if rp >= RECORD_LENGTH {
                         rp = 0;
-                        RECORD.store(false, Ordering::SeqCst);
+                        STATE.store(FLUSHING, Ordering::SeqCst);
                         // do not block. discard event if it fails
                         if event_tx.try_send(RecordingHasFinished).is_err() {
                             error!("Recording finish event queue is full!!");
@@ -100,8 +103,12 @@ async fn main(_spawner: Spawner) {
     let record_fut = async {
         loop {
             record_pin.wait_for_low().await;
-            info!("record!!");
-            RECORD.store(true, Ordering::SeqCst);
+            if STATE
+                .compare_exchange(IDLE, RECORDING, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
+                info!("record!!");
+            };
             Timer::after_secs(10).await;
         }
     };
@@ -164,6 +171,7 @@ async fn main(_spawner: Spawner) {
             }
             unwrap!(file.flush());
             info!("finish flushing to sd card!!");
+            STATE.store(IDLE, Ordering::SeqCst);
         }
     };
     join4(interface.start(), audio_callback_fut, record_fut, dump_fut).await;
