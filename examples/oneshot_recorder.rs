@@ -12,7 +12,7 @@ use defmt::{debug, error, info};
 use embassy_executor::Spawner;
 use embassy_futures::join::join4;
 use embassy_stm32::{exti::ExtiInput, gpio::Pull};
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel, mutex::Mutex};
 use embassy_time::Delay;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -33,24 +33,12 @@ async fn main(_spawner: Spawner) {
         .audio_peripherals
         .prepare_interface(Default::default())
         .await;
-    let mut sdram = board.sdram.build(&mut c.MPU, &mut c.SCB);
-    let mut delay = Delay;
-    let ram_slice = unsafe {
-        // Initialise controller and SDRAM
-        let ram_ptr: *mut u32 = sdram.init(&mut delay) as *mut _;
-
-        // Convert raw pointer to slice
-        core::slice::from_raw_parts_mut(ram_ptr, SDRAM_SIZE / core::mem::size_of::<u32>())
-    };
-    let loop_buffer = &mut ram_slice[..RECORD_LENGTH];
-    //clear loop_buffer
-    for smp in loop_buffer.iter_mut() {
-        *smp = SILENCE;
-    }
+    let sdram: Mutex<CriticalSectionRawMutex, _> =
+        Mutex::new(board.sdram.build(&mut c.MPU, &mut c.SCB));
     let event: Channel<CriticalSectionRawMutex, RecordingHasFinished, 1> = Channel::new();
     let event_tx = event.sender();
 
-    let audio_callback_fut = async move {
+    let audio_callback_fut = async {
         // Block Length
         const BL: usize = HALF_DMA_BUFFER_LENGTH;
         //record point
@@ -59,17 +47,35 @@ async fn main(_spawner: Spawner) {
             let rx = from_interface.receive().await;
             // if triggered record, record incoming buffer till the loop buffer is full
             if RECORD.load(Ordering::SeqCst) {
-                let remain = BL.min(RECORD_LENGTH - rp);
-                loop_buffer[rp..(rp + remain)].copy_from_slice(rx);
-                rp += BL;
-                if rp >= RECORD_LENGTH {
-                    rp = 0;
-                    RECORD.store(false, Ordering::SeqCst);
-                    // do not block. discard event if it fails to
-                    if event_tx.try_send(RecordingHasFinished).is_err() {
-                        error!("Recording finish event queue is full!!");
+                // The only time SDRAM is used elsewhere is when flushing recorded sound,
+                // and flushing only happens when the recording has been finished.
+                // When it fails to acquire lock and some audio samples are missed,
+                // let's take that it is not a "failure".
+                if let Ok(mut sdram) = sdram.try_lock() {
+                    let mut delay = Delay;
+                    let loop_buffer = unsafe {
+                        // Initialise controller and SDRAM
+                        let ram_ptr: *mut u32 = sdram.init(&mut delay) as *mut _;
+
+                        // Convert raw pointer to slice
+                        core::slice::from_raw_parts_mut(
+                            ram_ptr,
+                            SDRAM_SIZE / core::mem::size_of::<u32>(),
+                        )
+                    };
+
+                    let remain = BL.min(RECORD_LENGTH - rp);
+                    loop_buffer[rp..(rp + remain)].copy_from_slice(rx);
+                    rp += BL;
+                    if rp >= RECORD_LENGTH {
+                        rp = 0;
+                        RECORD.store(false, Ordering::SeqCst);
+                        // do not block. discard event if it fails
+                        if event_tx.try_send(RecordingHasFinished).is_err() {
+                            error!("Recording finish event queue is full!!");
+                        }
+                        info!("finished recording");
                     }
-                    info!("finished recording");
                 }
             }
             from_interface.receive_done();
@@ -97,7 +103,16 @@ async fn main(_spawner: Spawner) {
     let dump_fut = async {
         loop {
             event_rx.receive().await;
-            // todo!();
+            info!("flush the recorded to SD card");
+            let mut sdram = sdram.lock().await;
+            let mut delay = Delay;
+            let loop_buffer = unsafe {
+                // Initialise controller and SDRAM
+                let ram_ptr: *mut u32 = sdram.init(&mut delay) as *mut _;
+
+                // Convert raw pointer to slice
+                core::slice::from_raw_parts_mut(ram_ptr, SDRAM_SIZE / core::mem::size_of::<u32>())
+            };
         }
     };
     join4(interface.start(), audio_callback_fut, record_fut, dump_fut).await;
