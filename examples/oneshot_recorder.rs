@@ -151,8 +151,8 @@ async fn main(_spawner: Spawner) {
                 core::slice::from_raw_parts_mut(ram_ptr, SDRAM_SIZE / core::mem::size_of::<u32>())
             };
             unwrap!(file.write(&wav_header()));
-            for chunk in loop_buffer[..RECORD_LENGTH].chunks(128) {
-                let mut tmp = [0; 256];
+            for chunk in loop_buffer[..RECORD_LENGTH].chunks(1 << 15) {
+                let mut tmp = [0; 1 << 16];
                 for (i, smp) in chunk.iter().enumerate() {
                     let bytes = ((smp >> 16) as u16).to_le_bytes();
                     tmp[i * 2] = bytes[0];
