@@ -160,6 +160,8 @@ async fn main(_spawner: Spawner) {
                 }
                 unwrap!(file.write(&tmp));
             }
+            unwrap!(file.flush());
+            info!("finish flushing to sd card!!");
         }
     };
     join4(interface.start(), audio_callback_fut, record_fut, dump_fut).await;
