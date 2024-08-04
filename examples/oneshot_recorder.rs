@@ -8,7 +8,7 @@
 use core::sync::atomic::{AtomicU8, Ordering};
 
 use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_board, sdram::SDRAM_SIZE};
-use defmt::{debug, error, info, unwrap};
+use defmt::{debug, info, unwrap};
 use embassy_executor::Spawner;
 use embassy_futures::join::join4;
 use embassy_stm32::{
@@ -17,7 +17,7 @@ use embassy_stm32::{
     spi::Spi,
     time::Hertz,
 };
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel, mutex::Mutex};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex, signal::Signal};
 use embassy_time::{Delay, Timer};
 use embedded_sdmmc::{self, SdCard, VolumeIdx, VolumeManager};
 use {defmt_rtt as _, panic_probe as _};
@@ -30,6 +30,8 @@ static STATE: AtomicU8 = AtomicU8::new(0);
 const IDLE: u8 = 0;
 const RECORDING: u8 = 1;
 const FLUSHING: u8 = 2;
+static RECORDING_HAS_FINISHED: Signal<CriticalSectionRawMutex, RecordingHasFinished> =
+    Signal::new();
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -44,8 +46,6 @@ async fn main(_spawner: Spawner) {
         .await;
     let sdram: Mutex<CriticalSectionRawMutex, _> =
         Mutex::new(board.sdram.build(&mut c.MPU, &mut c.SCB));
-    let event: Channel<CriticalSectionRawMutex, RecordingHasFinished, 1> = Channel::new();
-    let event_tx = event.sender();
     let led: Mutex<CriticalSectionRawMutex, _> = Mutex::new(board.user_led);
 
     let audio_callback_fut = async {
@@ -80,10 +80,7 @@ async fn main(_spawner: Spawner) {
                     if rp >= RECORD_LENGTH {
                         rp = 0;
                         STATE.store(FLUSHING, Ordering::SeqCst);
-                        // do not block. discard event if it fails
-                        if event_tx.try_send(RecordingHasFinished).is_err() {
-                            error!("Recording finish event queue is full!!");
-                        }
+                        RECORDING_HAS_FINISHED.signal(RecordingHasFinished);
                         info!("finished recording");
                     }
                 }
@@ -114,7 +111,6 @@ async fn main(_spawner: Spawner) {
             Timer::after_secs(10).await;
         }
     };
-    let event_rx = event.receiver();
     let mut spi_config = embassy_stm32::spi::Config::default();
     // frequency must be low during card initialization
     spi_config.frequency = Hertz::khz(400);
@@ -149,7 +145,7 @@ async fn main(_spawner: Spawner) {
     // dump the recorded to SD card
     let dump_fut = async {
         loop {
-            event_rx.receive().await;
+            RECORDING_HAS_FINISHED.wait().await;
             info!("flush the recorded to SD card");
             let mut sdram = sdram.lock().await;
             let mut delay = Delay;
