@@ -7,8 +7,10 @@
 
 use core::sync::atomic::{AtomicU8, Ordering};
 
+use block_device_adapters::BufStream;
 use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_board, sdram::SDRAM_SIZE};
-use defmt::{debug, info, unwrap};
+use defmt::{debug, info};
+use embassy_embedded_hal::shared_bus::asynch::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
 use embassy_futures::join::join4;
 use embassy_stm32::{
@@ -19,7 +21,9 @@ use embassy_stm32::{
 };
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex, signal::Signal};
 use embassy_time::{Delay, Timer};
-use embedded_sdmmc::{self, SdCard, VolumeIdx, VolumeManager};
+use embedded_fatfs::FsOptions;
+use embedded_hal_async::delay::DelayNs;
+use sdspi::SdSpi;
 use {defmt_rtt as _, panic_probe as _};
 
 struct RecordingHasFinished;
@@ -114,7 +118,7 @@ async fn main(_spawner: Spawner) {
     let mut spi_config = embassy_stm32::spi::Config::default();
     // frequency must be low during card initialization
     spi_config.frequency = Hertz::khz(400);
-    let spi = Spi::new(
+    let spi: Mutex<CriticalSectionRawMutex, _> = Mutex::new(Spi::new(
         p.SPI1,
         board.pins.d8,
         board.pins.d10,
@@ -122,28 +126,39 @@ async fn main(_spawner: Spawner) {
         p.DMA1_CH0,
         p.DMA1_CH3,
         spi_config,
-    );
-    let spi = defmt::unwrap!(embedded_hal_bus::spi::ExclusiveDevice::new(
-        spi,
+    ));
+
+    let spi = SpiDeviceWithConfig::new(
+        &spi,
         gpio::Output::new(board.pins.d7, gpio::Level::High, gpio::Speed::High),
-        Delay,
-    ));
-    let sdcard = SdCard::new(spi, Delay);
-    let mut vmg0 = VolumeManager::new(sdcard, DummyTimeSource);
-    // initialize sd card by printing out sdcard size
-    info!("sdcard size: {}", defmt::unwrap!(vmg0.device().num_bytes()));
-    // now we can set higher baudrate
-    spi_config.frequency = Hertz::mhz(15);
-    vmg0.device()
-        .spi(|spi| defmt::unwrap!(spi.bus_mut().set_config(&spi_config)));
-    let mut volume = defmt::unwrap!(vmg0.open_volume(VolumeIdx(0)));
-    let mut dir = defmt::unwrap!(volume.open_root_dir());
-    let mut file = unwrap!(dir.open_file_in_dir(
-        "recorded.wav",
-        embedded_sdmmc::Mode::ReadWriteCreateOrTruncate,
-    ));
+        spi_config,
+    );
+
+    let mut sd = SdSpi::<_, _, aligned::A1>::new(spi, Delay);
+
+    loop {
+        // Initialize the card
+        if sd.init().await.is_ok() {
+            // Increase the speed up to 15mhz
+            let mut config = embassy_stm32::spi::Config::default();
+            config.frequency = Hertz::mhz(15);
+            sd.spi().set_config(config);
+            defmt::info!("Initialization complete!");
+
+            break;
+        }
+        defmt::info!("Failed to init card, retrying...");
+        Delay.delay_ns(5000u32).await;
+    }
+    let inner = BufStream::<_, 512>::new(sd);
+    let fs = embedded_fatfs::FileSystem::new(inner, FsOptions::new())
+        .await
+        .unwrap();
+    let root = fs.root_dir();
+    let mut file = root.create_file("recorded.wav").await.unwrap();
     // dump the recorded to SD card
     let dump_fut = async {
+        use embedded_io_async::Write;
         loop {
             RECORDING_HAS_FINISHED.wait().await;
             info!("flush the recorded to SD card");
@@ -156,7 +171,7 @@ async fn main(_spawner: Spawner) {
                 // Convert raw pointer to slice
                 core::slice::from_raw_parts_mut(ram_ptr, SDRAM_SIZE / core::mem::size_of::<u32>())
             };
-            unwrap!(file.write(&wav_header()));
+            file.write(&wav_header()).await.unwrap();
             for chunk in loop_buffer[..RECORD_LENGTH].chunks(1 << 10) {
                 let mut tmp = [0; (1 << 10) * 3];
                 for (i, smp) in chunk.iter().enumerate() {
@@ -165,9 +180,9 @@ async fn main(_spawner: Spawner) {
                     tmp[i * 3 + 1] = bytes[1];
                     tmp[i * 3 + 2] = bytes[2];
                 }
-                unwrap!(file.write(&tmp));
+                file.write(&tmp).await.unwrap();
             }
-            unwrap!(file.flush());
+            file.flush().await.unwrap();
             info!("finish flushing to sd card!!");
             STATE.store(IDLE, Ordering::SeqCst);
             led.lock().await.off();
@@ -239,18 +254,4 @@ fn wav_header() -> [u8; 44] {
     result[42] = 0x2b;
     result[43] = 0x00;
     result
-}
-
-struct DummyTimeSource;
-impl embedded_sdmmc::TimeSource for DummyTimeSource {
-    fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
-        embedded_sdmmc::Timestamp {
-            year_since_1970: 0,
-            zero_indexed_month: 0,
-            zero_indexed_day: 0,
-            hours: 0,
-            minutes: 0,
-            seconds: 0,
-        }
-    }
 }

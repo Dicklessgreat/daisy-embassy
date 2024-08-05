@@ -15,6 +15,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "aligned"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "377e4c0ba83e4431b10df45c1d4666f178ea9c552cac93e60c3a88bf32785923"
+dependencies = [
+ "as-slice",
+]
+
+[[package]]
+name = "as-slice"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "516b6b4f0e40d50dcda9365d53964ec74560ad4284da2e7fc97122cd83174516"
+dependencies = [
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -58,6 +76,24 @@ name = "bitflags"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
+
+[[package]]
+name = "block-device-adapters"
+version = "0.1.0"
+source = "git+https://github.com/MabezDev/embedded-fatfs?rev=46a39fd4dba9e5efe5931e0da67478475129ad13#46a39fd4dba9e5efe5931e0da67478475129ad13"
+dependencies = [
+ "aligned",
+ "block-device-driver",
+ "embedded-io-async",
+]
+
+[[package]]
+name = "block-device-driver"
+version = "0.2.0"
+source = "git+https://github.com/MabezDev/embedded-fatfs?rev=46a39fd4dba9e5efe5931e0da67478475129ad13#46a39fd4dba9e5efe5931e0da67478475129ad13"
+dependencies = [
+ "aligned",
+]
 
 [[package]]
 name = "byteorder"
@@ -123,20 +159,25 @@ checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 name = "daisy_embassy"
 version = "0.1.0"
 dependencies = [
+ "aligned",
+ "block-device-adapters",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
+ "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures",
  "embassy-stm32",
  "embassy-sync",
  "embassy-time",
  "embassy-usb",
- "embedded-hal-bus",
- "embedded-sdmmc",
+ "embedded-fatfs",
+ "embedded-hal-async",
+ "embedded-io-async",
  "grounded",
  "panic-probe",
+ "sdspi",
  "static_cell",
  "stm32-fmc",
  "wm8731",
@@ -341,7 +382,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rand_core",
- "sdio-host",
+ "sdio-host 0.5.0",
  "static_assertions",
  "stm32-fmc",
  "stm32-metapac",
@@ -435,6 +476,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-fatfs"
+version = "0.1.0"
+source = "git+https://github.com/MabezDev/embedded-fatfs?rev=46a39fd4dba9e5efe5931e0da67478475129ad13#46a39fd4dba9e5efe5931e0da67478475129ad13"
+dependencies = [
+ "bitflags 1.3.2",
+ "embedded-io-async",
+]
+
+[[package]]
 name = "embedded-hal"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -457,17 +507,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c4c685bbef7fe13c3c6dd4da26841ed3980ef33e841cddfa15ce8a8fb3f1884"
 dependencies = [
  "embedded-hal 1.0.0",
-]
-
-[[package]]
-name = "embedded-hal-bus"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d3980bf28e8577db59fe2bdb3df868a419469d2cecb363644eea2b6f7797669"
-dependencies = [
- "critical-section",
- "embedded-hal 1.0.0",
- "portable-atomic",
 ]
 
 [[package]]
@@ -497,18 +536,6 @@ checksum = "3ff09972d4073aa8c299395be75161d582e7629cd663171d62af73c8d50dba3f"
 dependencies = [
  "defmt",
  "embedded-io",
-]
-
-[[package]]
-name = "embedded-sdmmc"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "150f320125310e179b9e73b081173b349e63c5c7d4ca44db4e5b9121b10387ec"
-dependencies = [
- "byteorder",
- "defmt",
- "embedded-hal 1.0.0",
- "heapless",
 ]
 
 [[package]]
@@ -737,6 +764,25 @@ name = "sdio-host"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93c025f9cfe4c388c328ece47d11a54a823da3b5ad0370b22d95ad47137f85a"
+
+[[package]]
+name = "sdio-host"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b328e2cb950eeccd55b7f55c3a963691455dcd044cfb5354f0c5e68d2c2d6ee2"
+
+[[package]]
+name = "sdspi"
+version = "0.1.0"
+source = "git+https://github.com/MabezDev/embedded-fatfs?rev=46a39fd4dba9e5efe5931e0da67478475129ad13#46a39fd4dba9e5efe5931e0da67478475129ad13"
+dependencies = [
+ "aligned",
+ "block-device-driver",
+ "embassy-futures",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "sdio-host 0.9.0",
+]
 
 [[package]]
 name = "semver"
