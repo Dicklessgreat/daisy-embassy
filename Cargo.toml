@@ -42,9 +42,9 @@ embassy-futures = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc1
 embassy-usb = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
 embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
 
-embedded-fatfs = { git = "https://github.com/MabezDev/embedded-fatfs", rev = "46a39fd4dba9e5efe5931e0da67478475129ad13" }
-sdspi = { git = "https://github.com/MabezDev/embedded-fatfs", rev = "46a39fd4dba9e5efe5931e0da67478475129ad13" }
-block-device-adapters = { git = "https://github.com/MabezDev/embedded-fatfs", rev = "46a39fd4dba9e5efe5931e0da67478475129ad13" }
+embedded-fatfs = { git = "https://github.com/Dicklessgreat/embedded-fatfs.git", branch = "stm32h7_DMA" }
+sdspi = { git = "https://github.com/Dicklessgreat/embedded-fatfs.git", branch = "stm32h7_DMA" }
+block-device-adapters = { git = "https://github.com/Dicklessgreat/embedded-fatfs.git", branch = "stm32h7_DMA" }
 
 [profile.release]
 codegen-units = 1

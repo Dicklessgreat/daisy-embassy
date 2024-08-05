@@ -23,8 +23,13 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex, s
 use embassy_time::{Delay, Timer};
 use embedded_fatfs::FsOptions;
 use embedded_hal_async::delay::DelayNs;
+use grounded::uninit::GroundedArrayCell;
 use sdspi::SdSpi;
 use {defmt_rtt as _, panic_probe as _};
+
+//DMA buffer must be in special region. Refer https://embassy.dev/book/#_stm32_bdma_only_working_out_of_some_ram_regions
+#[link_section = ".sram1_bss"]
+static mut STORAGE: GroundedArrayCell<u8, 512> = GroundedArrayCell::uninit();
 
 struct RecordingHasFinished;
 //48000(Hz) * 10(Sec) * 2(stereo)
@@ -136,9 +141,14 @@ async fn main(_spawner: Spawner) {
 
     let mut sd = SdSpi::<_, _, aligned::A1>::new(spi, Delay);
 
+    let buf: &mut [u8] = unsafe {
+        STORAGE.initialize_all_copied(0);
+        let (ptr, len) = STORAGE.get_ptr_len();
+        core::slice::from_raw_parts_mut(ptr, len)
+    };
     loop {
         // Initialize the card
-        if sd.init().await.is_ok() {
+        if sd.init(buf).await.is_ok() {
             // Increase the speed up to 15mhz
             let mut config = embassy_stm32::spi::Config::default();
             config.frequency = Hertz::mhz(15);
@@ -150,7 +160,8 @@ async fn main(_spawner: Spawner) {
         defmt::info!("Failed to init card, retrying...");
         Delay.delay_ns(5000u32).await;
     }
-    let inner = BufStream::<_, 512>::new(sd);
+
+    let inner = BufStream::<_, 512>::new_with_buffer(sd, buf);
     let fs = embedded_fatfs::FileSystem::new(inner, FsOptions::new())
         .await
         .unwrap();
