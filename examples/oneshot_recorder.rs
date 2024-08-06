@@ -139,29 +139,34 @@ async fn main(_spawner: Spawner) {
         spi_config,
     );
 
-    let mut sd = SdSpi::<_, _, aligned::A1>::new(spi, Delay);
-
     let buf: &mut [u8] = unsafe {
         STORAGE.initialize_all_copied(0);
         let (ptr, len) = STORAGE.get_ptr_len();
         core::slice::from_raw_parts_mut(ptr, len)
     };
+    let mut sd = SdSpi::<_, _, aligned::A1>::new(spi, Delay, buf);
+
     loop {
         // Initialize the card
-        if sd.init(buf).await.is_ok() {
-            // Increase the speed up to 15mhz
-            let mut config = embassy_stm32::spi::Config::default();
-            config.frequency = Hertz::mhz(15);
-            sd.spi().set_config(config);
-            defmt::info!("Initialization complete!");
+        match sd.init().await {
+            Ok(_) => {
+                // Increase the speed up to 15mhz
+                let mut config = embassy_stm32::spi::Config::default();
+                config.frequency = Hertz::mhz(15);
+                sd.spi().set_config(config);
+                defmt::info!("Initialization complete!");
 
-            break;
+                break;
+            }
+            Err(e) => {
+                info!("{:?}", defmt::Debug2Format(&e));
+            }
         }
         defmt::info!("Failed to init card, retrying...");
         Delay.delay_ns(5000u32).await;
     }
 
-    let inner = BufStream::<_, 512>::new_with_buffer(sd, buf);
+    let inner = BufStream::<_, 512>::new(sd);
     let fs = embedded_fatfs::FileSystem::new(inner, FsOptions::new())
         .await
         .unwrap();
