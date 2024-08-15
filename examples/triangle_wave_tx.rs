@@ -46,7 +46,7 @@ async fn main(_spawner: Spawner) {
     let config = daisy_embassy::default_rcc();
     let p = hal::init(config);
     let board = new_daisy_board!(p);
-    let (mut interface, (mut to_interface, mut from_interface)) = board
+    let mut interface = board
         .audio_peripherals
         .prepare_interface(Default::default())
         .await;
@@ -67,15 +67,11 @@ async fn main(_spawner: Spawner) {
         }
     };
 
-    let audio_callback_fut = async {
-        let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
-        let mut smp_pos: u32 = 0;
-        loop {
-            //Receive buffer and discard all
-            //This step is necessary for the audio callback to proceed.
-            from_interface.receive().await;
-            from_interface.receive_done();
-
+    let mut buf = [0; HALF_DMA_BUFFER_LENGTH];
+    let mut smp_pos: u32 = 0;
+    join(
+        change_freq_fut,
+        interface.start(|_input, output| {
             let period = WaveFrequency::from(wave_freq.load(Ordering::SeqCst)).as_period();
             for chunk in buf.chunks_mut(2) {
                 let smp = f32_to_u24(make_triangle_wave(smp_pos % period, period));
@@ -89,12 +85,10 @@ async fn main(_spawner: Spawner) {
                 }
                 smp_pos = smp_pos.wrapping_add(1);
             }
-            let tx = to_interface.send().await;
-            tx.copy_from_slice(&buf);
-            to_interface.send_done();
-        }
-    };
-    join(change_freq_fut, join(interface.start(), audio_callback_fut)).await;
+            output.copy_from_slice(&buf);
+        }),
+    )
+    .await;
 }
 
 fn make_triangle_wave(pos: u32, period_smp: u32) -> f32 {
