@@ -8,8 +8,10 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, new_daisy_board, sdram::SDRAM_SIZE};
 use defmt::{debug, info};
-use embassy_executor::Spawner;
-use embassy_futures::join::join3;
+use embassy_executor::{InterruptExecutor, Spawner};
+use embassy_futures::join::join;
+use embassy_stm32::interrupt;
+use embassy_stm32::interrupt::{InterruptExt, Priority};
 use embassy_stm32::{exti::ExtiInput, gpio::Pull};
 use embassy_time::Delay;
 use {defmt_rtt as _, panic_probe as _};
@@ -18,6 +20,12 @@ use {defmt_rtt as _, panic_probe as _};
 const LOOPER_LENGTH: usize = 960_000;
 const SILENCE: u32 = u32::MAX / 2;
 static RECORD: AtomicBool = AtomicBool::new(false);
+static AUDIO_EXECUTOR: InterruptExecutor = InterruptExecutor::new();
+
+#[interrupt]
+unsafe fn SAI1() {
+    AUDIO_EXECUTOR.on_interrupt()
+}
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -90,5 +98,9 @@ async fn main(_spawner: Spawner) {
             RECORD.store(true, Ordering::SeqCst);
         }
     };
-    join3(interface.start(), audio_callback_fut, record_fut).await;
+
+    interrupt::SAI1.set_priority(Priority::P6);
+    let spawner = AUDIO_EXECUTOR.start(interrupt::SAI1);
+    defmt::unwrap!(spawner.spawn(join(interface.start(), audio_callback_fut)));
+    join(audio_callback_fut, record_fut).await;
 }
