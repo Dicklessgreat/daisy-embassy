@@ -101,11 +101,10 @@ async fn main(_spawner: Spawner) {
     let mut record_pin = ExtiInput::new(board.pins.d16, p.EXTI3, Pull::Up);
     let record_fut = async {
         loop {
-            record_pin.wait_for_low().await;
-            info!("record!!");
+            record_pin.wait_for_falling_edge().await;
             RECORD.store(true, Ordering::SeqCst);
-            //wait till the recording has finished
-            Timer::after_secs(10).await;
+            info!("record!!");
+            Timer::after_millis(15).await; // debounce
         }
     };
 
