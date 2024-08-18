@@ -132,18 +132,32 @@ async fn main(_spawner: Spawner) {
         p.DMA1_CH3,
         spi_config,
     ));
-
-    let spi = SpiDeviceWithConfig::new(
-        &spi,
-        gpio::Output::new(board.pins.d7, gpio::Level::High, gpio::Speed::High),
-        spi_config,
-    );
-
     let buf: &mut [u8] = unsafe {
         STORAGE.initialize_all_copied(0);
         let (ptr, len) = STORAGE.get_ptr_len();
         core::slice::from_raw_parts_mut(ptr, len)
     };
+    let cs = gpio::Output::new(board.pins.d7, gpio::Level::High, gpio::Speed::High);
+
+    // Sd cards need to be clocked with a at least 74 cycles on their spi clock without the cs enabled,
+    // sd_init is a helper function that does this for us.
+    loop {
+        let sd_init = &mut buf[..10];
+        for i in sd_init.iter_mut() {
+            *i = 0xFF;
+        }
+        // Supply minimum of 74 clock cycles without CS asserted.
+        match spi.lock().await.write(sd_init).await {
+            Ok(_) => break,
+            Err(_) => {
+                defmt::warn!("Sd init failed, retrying...");
+                Timer::after_millis(10).await;
+            }
+        }
+    }
+
+    let spi = SpiDeviceWithConfig::new(&spi, cs, spi_config);
+
     let mut sd = SdSpi::<_, _, aligned::A1>::new(spi, Delay, buf);
 
     loop {
