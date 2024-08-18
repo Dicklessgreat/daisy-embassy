@@ -1,5 +1,6 @@
 use crate::pins::WM8731Pins;
 use defmt::info;
+use defmt::unwrap;
 use embassy_stm32 as hal;
 use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
@@ -180,9 +181,9 @@ impl<'a> Interface<'a> {
         loop {
             let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
             let mut read_buf = [0; HALF_DMA_BUFFER_LENGTH];
-            self.sai_rx.read(&mut read_buf).await.unwrap();
+            unwrap!(self.sai_rx.read(&mut read_buf).await);
             callback(&read_buf, &mut write_buf);
-            self.sai_tx.write(&write_buf).await.unwrap();
+            unwrap!(self.sai_tx.write(&write_buf).await);
         }
     }
     pub fn rx_config(&self) -> &sai::Config {
@@ -309,7 +310,7 @@ fn write_wm8731_reg(i2c: &mut hal::i2c::I2c<'_, hal::mode::Blocking>, r: wm8731:
     // Let's pack wm8731::Register into 16 bits.
     let byte1: u8 = ((r.address << 1) & 0b1111_1110) | (((r.value >> 8) & 0b0000_0001) as u8);
     let byte2: u8 = (r.value & 0b1111_1111) as u8;
-    i2c.blocking_write(AD, &[byte1, byte2]).unwrap();
+    unwrap!(i2c.blocking_write(AD, &[byte1, byte2]));
 }
 fn final_power_settings(w: &mut wm8731::power_down::PowerDown) {
     w.power_off().power_on();
