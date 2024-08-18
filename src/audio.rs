@@ -1,10 +1,6 @@
 use crate::pins::WM8731Pins;
 use defmt::info;
 use embassy_stm32 as hal;
-use embassy_sync::{
-    blocking_mutex::raw::NoopRawMutex,
-    zerocopy_channel::{Channel, Receiver, Sender},
-};
 use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
 use hal::sai::FifoThreshold;
@@ -18,7 +14,6 @@ use hal::{
     },
     time::Hertz,
 };
-use static_cell::StaticCell;
 // - global constants ---------------------------------------------------------
 
 const I2C_FS: Hertz = Hertz(100_000);
@@ -37,11 +32,6 @@ static mut RX_BUFFER: GroundedArrayCell<u32, DMA_BUFFER_LENGTH> = GroundedArrayC
 // - types --------------------------------------------------------------------
 
 pub type InterleavedBlock = [u32; HALF_DMA_BUFFER_LENGTH];
-pub type AudioBlockBuffers = (
-    Sender<'static, NoopRawMutex, InterleavedBlock>,
-    Receiver<'static, NoopRawMutex, InterleavedBlock>,
-);
-
 pub struct AudioPeripherals {
     pub wm8731: WM8731Pins,
     pub sai1: hal::peripherals::SAI1,
@@ -51,10 +41,7 @@ pub struct AudioPeripherals {
 }
 
 impl AudioPeripherals {
-    pub async fn prepare_interface<'a>(
-        self,
-        audio_config: AudioConfig,
-    ) -> (Interface<'a>, AudioBlockBuffers) {
+    pub async fn prepare_interface<'a>(self, audio_config: AudioConfig) -> Interface<'a> {
         info!("set up i2c");
         let i2c_config = hal::i2c::Config::default();
         let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
@@ -121,32 +108,13 @@ impl AudioPeripherals {
             sai_rx_config,
         );
 
-        static TO_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
-        let to_interface_buf = TO_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
-        static TO_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
-            StaticCell::new();
-        let (client_to_if_tx, client_to_if_rx) =
-            TO_INTERFACE.init(Channel::new(to_interface_buf)).split();
-        static FROM_INTERFACE_BUF: StaticCell<[InterleavedBlock; 2]> = StaticCell::new();
-        let from_interface_buf = FROM_INTERFACE_BUF.init([[0; HALF_DMA_BUFFER_LENGTH]; 2]);
-        static FROM_INTERFACE: StaticCell<Channel<'_, NoopRawMutex, InterleavedBlock>> =
-            StaticCell::new();
-        let (if_to_client_tx, if_to_client_rx) = FROM_INTERFACE
-            .init(Channel::new(from_interface_buf))
-            .split();
-
-        (
-            Interface {
-                sai_rx_config,
-                sai_tx_config,
-                sai_rx,
-                sai_tx,
-                i2c,
-                to_client: if_to_client_tx,
-                from_client: client_to_if_rx,
-            },
-            (client_to_if_tx, if_to_client_rx),
-        )
+        Interface {
+            sai_rx_config,
+            sai_tx_config,
+            sai_rx,
+            sai_tx,
+            i2c,
+        }
     }
 }
 
@@ -192,12 +160,10 @@ pub struct Interface<'a> {
     sai_tx: Sai<'a, peripherals::SAI1, u32>,
     sai_rx: Sai<'a, peripherals::SAI1, u32>,
     i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
-    to_client: Sender<'static, NoopRawMutex, InterleavedBlock>,
-    from_client: Receiver<'static, NoopRawMutex, InterleavedBlock>,
 }
 
 impl<'a> Interface<'a> {
-    pub async fn start(&mut self) -> ! {
+    pub async fn start(&mut self, mut callback: impl FnMut(&[u32], &mut [u32])) -> ! {
         info!("let's set up audio callback");
         info!("enable WM8731 output");
         write_wm8731_reg(
@@ -212,16 +178,11 @@ impl<'a> Interface<'a> {
 
         info!("enter audio callback loop");
         loop {
-            // Obtain a free buffer from the channel
-            let buf = self.to_client.send().await;
-            // and fill it with data
-            self.sai_rx.read(buf).await.unwrap();
-            //Notify the channel that the buffer is now ready to be received
-            self.to_client.send_done();
-            // await till client audio callback task has finished processing
-            let buf = self.from_client.receive().await;
-            self.sai_tx.write(buf).await.unwrap();
-            self.from_client.receive_done();
+            let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
+            let mut read_buf = [0; HALF_DMA_BUFFER_LENGTH];
+            self.sai_rx.read(&mut read_buf).await.unwrap();
+            callback(&read_buf, &mut write_buf);
+            self.sai_tx.write(&write_buf).await.unwrap();
         }
     }
     pub fn rx_config(&self) -> &sai::Config {
