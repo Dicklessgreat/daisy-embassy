@@ -14,6 +14,8 @@ use std::io::Write;
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo::rustc-link-arg-tests=-Tembedded-test.x");
+
     // Put `memory.x` in our output directory and ensure it's
     // on the linker search path.
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
