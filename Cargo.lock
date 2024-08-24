@@ -134,6 +134,7 @@ version = "0.1.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
+ "critical-section",
  "defmt",
  "defmt-rtt",
  "embassy-executor",
@@ -144,6 +145,8 @@ dependencies = [
  "embassy-usb",
  "embedded-test",
  "grounded",
+ "heapless 0.8.0",
+ "micromath",
  "panic-probe",
  "static_cell",
  "stm32-fmc",
@@ -239,7 +242,7 @@ dependencies = [
 [[package]]
 name = "embassy-embedded-hal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "defmt",
  "embassy-futures",
@@ -256,7 +259,7 @@ dependencies = [
 [[package]]
 name = "embassy-executor"
 version = "0.5.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "cortex-m",
  "critical-section",
@@ -270,7 +273,7 @@ dependencies = [
 [[package]]
 name = "embassy-executor-macros"
 version = "0.4.1"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -281,12 +284,12 @@ dependencies = [
 [[package]]
 name = "embassy-futures"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 
 [[package]]
 name = "embassy-hal-internal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "cortex-m",
  "critical-section",
@@ -297,7 +300,7 @@ dependencies = [
 [[package]]
 name = "embassy-net-driver"
 version = "0.2.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "defmt",
 ]
@@ -305,7 +308,7 @@ dependencies = [
 [[package]]
 name = "embassy-net-driver-channel"
 version = "0.2.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "embassy-futures",
  "embassy-net-driver",
@@ -315,7 +318,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "bit_field",
  "bitflags 2.6.0",
@@ -360,7 +363,7 @@ dependencies = [
 [[package]]
 name = "embassy-sync"
 version = "0.6.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -373,7 +376,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.3.1"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -391,7 +394,7 @@ dependencies = [
 [[package]]
 name = "embassy-time-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "document-features",
 ]
@@ -399,12 +402,12 @@ dependencies = [
 [[package]]
 name = "embassy-time-queue-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 
 [[package]]
 name = "embassy-usb"
 version = "0.2.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "embassy-futures",
  "embassy-net-driver-channel",
@@ -418,7 +421,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "defmt",
 ]
@@ -426,7 +429,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb-synopsys-otg"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy?rev=b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0#b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0"
+source = "git+https://github.com/elagil/embassy.git?rev=ea748d5b73db5d93aeffdfcba99866b985c7ed1e#ea748d5b73db5d93aeffdfcba99866b985c7ed1e"
 dependencies = [
  "critical-section",
  "embassy-sync",
@@ -660,6 +663,12 @@ name = "log"
 version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+
+[[package]]
+name = "micromath"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3c8dda44ff03a2f238717214da50f65d5a53b45cd213a7370424ffdb6fae815"
 
 [[package]]
 name = "nb"

@@ -26,14 +26,17 @@ embassy-executor = { version = "0.5.0", features = ["task-arena-size-32768", "ar
 embassy-futures = "0.1.1"
 embassy-usb = "0.2.0"
 embedded-test = { version = "0.4.0", features = ["defmt", "embassy", "external-executor", "panic-handler"] }
+critical-section = "1.1"
+heapless = { version = "0.8", default-features = false }
+micromath = "2.0.0"
 
 [patch.crates-io]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
-embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
-embassy-futures = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
-embassy-usb = { git = "https://github.com/embassy-rs/embassy", rev = "b88dc137e766d89eca5472bfa6f3bb78cfd1f7e0" }
+embassy-stm32 = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+embassy-time = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+embassy-sync = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+embassy-executor = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+embassy-futures = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+embassy-usb = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
 
 [profile.release]
 codegen-units = 1
@@ -75,6 +78,9 @@ path = "examples/usb_serial.rs"
 [[example]]
 name = "looper"
 path = "examples/looper.rs"
+[[example]]
+name = "usb_uac"
+path = "examples/_usb_uac.rs"
 [[example]]
 name = "_minimum_sai"
 path = "examples/_minimum_sai.rs"
