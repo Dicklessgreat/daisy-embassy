@@ -6,9 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embassy-stm32 = { version = "0.1.0", features = ["defmt", "stm32h750ib", "time-driver-tim2", "exti", "memory-x", "unstable-pac", "chrono"] }
-embassy-time = { version = "0.3.1", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
-embassy-sync = { version = "0.6.0", features = ["defmt"] }
+# embassy-stm32 = { version = "0.1.0", features = ["defmt", "stm32h750ib", "time-driver-tim2", "exti", "memory-x", "unstable-pac", "chrono"] }
+# embassy-time = { version = "0.3.1", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
+# embassy-sync = { version = "0.6.0", features = ["defmt"] }
+embassy-stm32 = { path = "../_third_party/embassy/embassy-stm32", features = ["defmt", "stm32h750ib", "time-driver-tim2", "exti", "memory-x", "unstable-pac", "chrono"] }
+embassy-time = { path = "../_third_party/embassy/embassy-time", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
+embassy-sync = { path = "../_third_party/embassy/embassy-sync", features = ["defmt"] }
 cortex-m = "0.7.7"
 static_cell = "2.1.0"
 defmt = "0.3.8"
@@ -22,21 +25,24 @@ cortex-m-rt = { version = "0.7.0", features = ["device"] }
 defmt = "0.3.8"
 defmt-rtt = "0.4.1"
 panic-probe = { version = "0.3.2", features = ["print-defmt"] }
-embassy-executor = { version = "0.5.0", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
-embassy-futures = "0.1.1"
-embassy-usb = "0.2.0"
+# embassy-executor = { version = "0.5.0", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+# embassy-futures = "0.1.1"
+# embassy-usb = "0.2.0"
+embassy-executor = { path = "../_third_party/embassy/embassy-executor", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+embassy-futures = { path = "../_third_party/embassy/embassy-futures" }
+embassy-usb = { path = "../_third_party/embassy/embassy-usb" }
 embedded-test = { version = "0.4.0", features = ["defmt", "embassy", "external-executor", "panic-handler"] }
 critical-section = "1.1"
 heapless = { version = "0.8", default-features = false }
 micromath = "2.0.0"
 
-[patch.crates-io]
-embassy-stm32 = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
-embassy-time = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
-embassy-sync = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
-embassy-executor = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
-embassy-futures = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
-embassy-usb = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+# [patch.crates-io]
+# embassy-stm32 = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+# embassy-time = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+# embassy-sync = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+# embassy-executor = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+# embassy-futures = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
+# embassy-usb = { git = "https://github.com/elagil/embassy.git", rev = "ea748d5b73db5d93aeffdfcba99866b985c7ed1e" }
 
 [profile.release]
 codegen-units = 1
