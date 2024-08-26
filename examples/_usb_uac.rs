@@ -25,7 +25,7 @@ bind_interrupts!(struct Irqs {
 
 static TIMER: Mutex<
     CriticalSectionRawMutex,
-    RefCell<Option<timer::low_level::Timer<peripherals::TIM5>>>,
+    RefCell<Option<timer::low_level::Timer<peripherals::TIM2>>>,
 > = Mutex::new(RefCell::new(None));
 
 // A counter signal that is written by the feedback timer, once every `FEEDBACK_REFRESH_PERIOD`.
@@ -215,7 +215,7 @@ async fn usb_control_task(control_monitor: speaker::ControlMonitor<'static>) {
 /// the MCLK output of the SAI peripheral, which allows the SAI peripheral to use an external clock. However, this
 /// requires wiring the MCLK output to the timer clock input.
 #[interrupt]
-fn TIM5() {
+fn TIM2() {
     static mut LAST_TICKS: u32 = 0;
     static mut FRAME_COUNT: usize = 0;
 
@@ -369,18 +369,18 @@ async fn main(spawner: Spawner) {
     let (sender, receiver) = channel.split();
 
     // Run a timer for counting between SOF interrupts.
-    let mut tim5 = timer::low_level::Timer::new(p.TIM5);
-    tim5.set_tick_freq(Hertz(FEEDBACK_COUNTER_TICK_RATE));
-    tim5.set_trigger_source(timer::low_level::TriggerSource::ITR1); // The USB SOF signal.
-    tim5.set_slave_mode(timer::low_level::SlaveMode::TRIGGER_MODE);
-    tim5.regs_gp16().dier().modify(|r| r.set_tie(true)); // Enable the trigger interrupt.
-    tim5.start();
+    let mut tim2 = timer::low_level::Timer::new(p.TIM2);
+    tim2.set_tick_freq(Hertz(FEEDBACK_COUNTER_TICK_RATE));
+    tim2.set_trigger_source(timer::low_level::TriggerSource::ITR1); // The USB SOF signal.
+    tim2.set_slave_mode(timer::low_level::SlaveMode::TRIGGER_MODE);
+    tim2.regs_gp16().dier().modify(|r| r.set_tie(true)); // Enable the trigger interrupt.
+    tim2.start();
 
-    TIMER.lock(|p| p.borrow_mut().replace(tim5));
+    TIMER.lock(|p| p.borrow_mut().replace(tim2));
 
     // Unmask the TIM2 interrupt.
     unsafe {
-        cortex_m::peripheral::NVIC::unmask(interrupt::TIM5);
+        cortex_m::peripheral::NVIC::unmask(interrupt::TIM2);
     }
 
     // Launch USB audio tasks.
