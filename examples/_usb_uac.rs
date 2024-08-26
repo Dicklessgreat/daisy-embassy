@@ -258,28 +258,6 @@ fn TIM2() {
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     info!("Hello World!");
-
-    // let mut config = Config::default();
-    // {
-    //     use embassy_stm32::rcc::*;
-    //     config.rcc.hse = Some(Hse {
-    //         freq: Hertz(8_000_000),
-    //         mode: HseMode::Bypass,
-    //     });
-    //     config.rcc.pll_src = PllSource::HSE;
-    //     config.rcc.pll = Some(Pll {
-    //         prediv: PllPreDiv::DIV4,
-    //         mul: PllMul::MUL168,
-    //         divp: Some(PllPDiv::DIV2), // ((8 MHz / 4) * 168) / 2 = 168 Mhz.
-    //         divq: Some(PllQDiv::DIV7), // ((8 MHz / 4) * 168) / 7 = 48 Mhz.
-    //         divr: None,
-    //     });
-    //     config.rcc.ahb_pre = AHBPrescaler::DIV1;
-    //     config.rcc.apb1_pre = APBPrescaler::DIV4;
-    //     config.rcc.apb2_pre = APBPrescaler::DIV2;
-    //     config.rcc.sys = Sysclk::PLL1_P;
-    //     config.rcc.mux.clk48sel = mux::Clk48sel::PLL1_Q;
-    // }
     let config = daisy_embassy::default_rcc();
     let p = embassy_stm32::init(config);
 
