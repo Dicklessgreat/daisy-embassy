@@ -164,19 +164,19 @@ async fn usb_streaming_task(
 }
 
 /// Sends sample rate feedback to the host.
-#[embassy_executor::task]
-async fn usb_feedback_task(
-    mut feedback: speaker::Feedback<'static, usb::Driver<'static, peripherals::USB_OTG_FS>>,
-) {
-    let feedback_factor = ((1 << FEEDBACK_SHIFT) as f32 / TICKS_PER_SAMPLE)
-        / 2.0_f32.powf(FEEDBACK_REFRESH_PERIOD as usize as f32);
-    info!("Using a feedback factor of {}.", feedback_factor);
+// #[embassy_executor::task]
+// async fn usb_feedback_task(
+//     mut feedback: speaker::Feedback<'static, usb::Driver<'static, peripherals::USB_OTG_FS>>,
+// ) {
+//     let feedback_factor = ((1 << FEEDBACK_SHIFT) as f32 / TICKS_PER_SAMPLE)
+//         / 2.0_f32.powf(FEEDBACK_REFRESH_PERIOD as usize as f32);
+//     info!("Using a feedback factor of {}.", feedback_factor);
 
-    loop {
-        feedback.wait_connection().await;
-        _ = feedback_handler(&mut feedback, feedback_factor).await;
-    }
-}
+//     loop {
+//         feedback.wait_connection().await;
+//         _ = feedback_handler(&mut feedback, feedback_factor).await;
+//     }
+// }
 
 #[embassy_executor::task]
 async fn usb_task(
@@ -346,7 +346,7 @@ async fn main(spawner: Spawner) {
     );
 
     // Create the UAC1 Speaker class components
-    let (stream, feedback, control_monitor) = Speaker::new(
+    let (stream, _feedback, control_monitor) = Speaker::new(
         &mut builder,
         state,
         USB_MAX_PACKET_SIZE as u16,
@@ -386,7 +386,7 @@ async fn main(spawner: Spawner) {
     // Launch USB audio tasks.
     unwrap!(spawner.spawn(usb_control_task(control_monitor)));
     unwrap!(spawner.spawn(usb_streaming_task(stream, sender)));
-    unwrap!(spawner.spawn(usb_feedback_task(feedback)));
+    // unwrap!(spawner.spawn(usb_feedback_task(feedback)));
     unwrap!(spawner.spawn(usb_task(usb_device)));
     unwrap!(spawner.spawn(audio_receiver_task(receiver)));
 }
