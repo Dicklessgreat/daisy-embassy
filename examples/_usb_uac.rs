@@ -140,8 +140,10 @@ async fn stream_handler<'d, T: usb::Instance + 'd>(
 /// Receives audio samples from the USB streaming task and can play them back.
 #[embassy_executor::task]
 async fn audio_receiver_task(
+    audio_p: daisy_embassy::audio::AudioPeripherals,
     mut usb_audio_receiver: zerocopy_channel::Receiver<'static, NoopRawMutex, SampleBlock>,
 ) {
+    let interface = audio_p.prepare_interface(Default::default()).await;
     loop {
         let _samples = usb_audio_receiver.receive().await;
         // Use the samples, for example play back via the SAI peripheral.
@@ -260,6 +262,7 @@ async fn main(spawner: Spawner) {
     info!("Hello World!");
     let config = daisy_embassy::default_rcc();
     let p = embassy_stm32::init(config);
+    let board = daisy_embassy::new_daisy_board!(p);
 
     // Configure all required buffers in a static way.
     debug!("USB packet size is {} byte", USB_MAX_PACKET_SIZE);
@@ -293,10 +296,10 @@ async fn main(spawner: Spawner) {
     usb_config.vbus_detection = false;
 
     let usb_driver = usb::Driver::new_fs(
-        p.USB_OTG_FS,
+        board.usb_peripherals.usb_otg_fs,
         Irqs,
-        p.PA12,
-        p.PA11,
+        board.usb_peripherals.pins.DP,
+        board.usb_peripherals.pins.DN,
         ep_out_buffer,
         usb_config,
     );
@@ -366,5 +369,5 @@ async fn main(spawner: Spawner) {
     unwrap!(spawner.spawn(usb_streaming_task(stream, sender)));
     // unwrap!(spawner.spawn(usb_feedback_task(feedback)));
     unwrap!(spawner.spawn(usb_task(usb_device)));
-    unwrap!(spawner.spawn(audio_receiver_task(receiver)));
+    unwrap!(spawner.spawn(audio_receiver_task(board.audio_peripherals, receiver)));
 }
