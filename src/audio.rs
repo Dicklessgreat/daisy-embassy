@@ -165,18 +165,7 @@ pub struct Interface<'a> {
 
 impl<'a> Interface<'a> {
     pub async fn start(&mut self, mut callback: impl FnMut(&[u32], &mut [u32])) -> ! {
-        info!("let's set up audio callback");
-        info!("enable WM8731 output");
-        write_wm8731_reg(
-            &mut self.i2c,
-            wm8731::WM8731::power_down(final_power_settings),
-        );
-        Timer::after_micros(10).await;
-
-        info!("start SAI");
-        self.sai_tx.start();
-        self.sai_rx.start();
-
+        self.setup().await;
         info!("enter audio callback loop");
         loop {
             let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
@@ -191,6 +180,30 @@ impl<'a> Interface<'a> {
     }
     pub fn tx_config(&self) -> &sai::Config {
         &self.sai_tx_config
+    }
+    // returns (sai_tx, sai_rx, i2c)
+    pub async fn setup_and_release(
+        mut self,
+    ) -> (
+        Sai<'a, peripherals::SAI1, u32>,
+        Sai<'a, peripherals::SAI1, u32>,
+        hal::i2c::I2c<'a, hal::mode::Blocking>,
+    ) {
+        self.setup().await;
+        (self.sai_tx, self.sai_rx, self.i2c)
+    }
+
+    async fn setup(&mut self) {
+        info!("setup WM8731");
+        write_wm8731_reg(
+            &mut self.i2c,
+            wm8731::WM8731::power_down(final_power_settings),
+        );
+        Timer::after_micros(10).await;
+
+        info!("start SAI");
+        self.sai_tx.start();
+        self.sai_rx.start();
     }
 }
 
