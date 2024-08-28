@@ -3,6 +3,7 @@
 
 use core::cell::RefCell;
 
+use daisy_embassy::audio::HALF_DMA_BUFFER_LENGTH;
 use defmt::{panic, *};
 use embassy_executor::Spawner;
 use embassy_stm32::time::Hertz;
@@ -144,12 +145,23 @@ async fn audio_receiver_task(
     mut usb_audio_receiver: zerocopy_channel::Receiver<'static, NoopRawMutex, SampleBlock>,
 ) {
     let interface = audio_p.prepare_interface(Default::default()).await;
-    loop {
-        let _samples = usb_audio_receiver.receive().await;
-        // Use the samples, for example play back via the SAI peripheral.
+    let (mut sai_tx, _, _) = interface.setup_and_release().await;
+    let mut queue = heapless::Vec::<u32, { USB_MAX_SAMPLE_COUNT * 2 }>::new();
 
-        // Notify the channel that the buffer is now ready to be reused
-        usb_audio_receiver.receive_done();
+    loop {
+        let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
+        if let Some(samples) = usb_audio_receiver.try_receive() {
+            for smp in samples.iter() {
+                queue.push(*smp).unwrap();
+            }
+            usb_audio_receiver.receive_done();
+        }
+        for buf in write_buf.iter_mut() {
+            if let Some(smp) = queue.pop() {
+                *buf = smp;
+            }
+        }
+        unwrap!(sai_tx.write(&write_buf).await);
     }
 }
 
