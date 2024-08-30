@@ -25,9 +25,9 @@ cortex-m-rt = { version = "0.7.0", features = ["device"] }
 defmt = "0.3.8"
 defmt-rtt = "0.4.1"
 panic-probe = { version = "0.3.2", features = ["print-defmt"] }
-embassy-executor = { version = "0.5.0", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+embassy-executor = { version = "0.6.0", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
 embassy-futures = "0.1.1"
-embassy-usb = "0.2.0"
+embassy-usb = "0.3.0"
 # embassy-executor = { path = "../_third_party/embassy/embassy-executor", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
 # embassy-futures = { path = "../_third_party/embassy/embassy-futures" }
 # embassy-usb = { path = "../_third_party/embassy/embassy-usb" }
@@ -37,12 +37,12 @@ heapless = { version = "0.8", default-features = false }
 micromath = "2.0.0"
 
 [patch.crates-io]
-embassy-stm32 = { git = "https://github.com/elagil/embassy.git", rev = "8cbe93350fe58ada6809ec8051498d240999df8c" }
-embassy-time = { git = "https://github.com/elagil/embassy.git", rev = "8cbe93350fe58ada6809ec8051498d240999df8c" }
-embassy-sync = { git = "https://github.com/elagil/embassy.git", rev = "8cbe93350fe58ada6809ec8051498d240999df8c" }
-embassy-executor = { git = "https://github.com/elagil/embassy.git", rev = "8cbe93350fe58ada6809ec8051498d240999df8c" }
-embassy-futures = { git = "https://github.com/elagil/embassy.git", rev = "8cbe93350fe58ada6809ec8051498d240999df8c" }
-embassy-usb = { git = "https://github.com/elagil/embassy.git", rev = "8cbe93350fe58ada6809ec8051498d240999df8c" }
+embassy-stm32 = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
+embassy-time = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
+embassy-sync = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
+embassy-executor = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
+embassy-futures = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
+embassy-usb = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
 
 [profile.release]
 codegen-units = 1
