@@ -145,14 +145,18 @@ async fn audio_receiver_task(
     mut usb_audio_receiver: zerocopy_channel::Receiver<'static, NoopRawMutex, SampleBlock>,
 ) {
     let interface = audio_p.prepare_interface(Default::default()).await;
-    let (mut sai_tx, _, _) = interface.setup_and_release().await;
+    let (mut sai_tx, mut sai_rx, _) = interface.setup_and_release().await;
     let mut queue = heapless::Vec::<u32, { USB_MAX_SAMPLE_COUNT * 2 }>::new();
 
     loop {
+        let mut read_buf = [0; HALF_DMA_BUFFER_LENGTH];
         let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
+        unwrap!(sai_rx.read(&mut read_buf).await); //discard received
         if let Some(samples) = usb_audio_receiver.try_receive() {
             for smp in samples.iter() {
-                queue.push(*smp).unwrap();
+                //compress to 24bit
+                let smp = smp >> 8;
+                queue.push(smp).unwrap();
             }
             usb_audio_receiver.receive_done();
         }
