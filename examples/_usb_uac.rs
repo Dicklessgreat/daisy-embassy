@@ -368,7 +368,8 @@ async fn main(spawner: Spawner) {
     // Run a timer for counting between SOF interrupts.
     let mut tim2 = timer::low_level::Timer::new(p.TIM2);
     tim2.set_tick_freq(Hertz(FEEDBACK_COUNTER_TICK_RATE));
-    tim2.set_trigger_source(timer::low_level::TriggerSource::ITR1); // The USB SOF signal.
+    //from RM0433 "Reference Manual" P.1682 Table338
+    tim2.set_trigger_source(timer::low_level::TriggerSource::ITR6); // The USB SOF signal.
     tim2.set_slave_mode(timer::low_level::SlaveMode::TRIGGER_MODE);
     tim2.regs_gp16().dier().modify(|r| r.set_tie(true)); // Enable the trigger interrupt.
     tim2.start();
