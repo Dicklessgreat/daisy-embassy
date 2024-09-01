@@ -109,6 +109,7 @@ async fn stream_handler<'d, T: usb::Instance + 'd>(
     stream: &mut speaker::Stream<'d, usb::Driver<'d, T>>,
     sender: &mut zerocopy_channel::Sender<'static, NoopRawMutex, SampleBlock>,
 ) -> Result<(), Disconnected> {
+    info!("num audio block smp: {}", USB_MAX_SAMPLE_COUNT);
     loop {
         let mut usb_data = [0u8; USB_MAX_PACKET_SIZE];
         let data_size = stream.read_packet(&mut usb_data).await?;
