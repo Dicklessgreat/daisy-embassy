@@ -19,7 +19,7 @@ grounded = "0.2.0"
 wm8731 = "0.1.0"
 stm32-fmc = "0.3.0"
 
-[dev_dependencies]
+[dev-dependencies]
 cortex-m = { version = "0.7.6", features = ["inline-asm", "critical-section-single-core"] }
 cortex-m-rt = { version = "0.7.0", features = ["device"] }
 defmt = "0.3.8"
@@ -35,6 +35,15 @@ embedded-test = { version = "0.4.0", features = ["defmt", "embassy", "external-e
 critical-section = "1.1"
 heapless = { version = "0.8", default-features = false }
 micromath = "2.0.0"
+
+[features]
+default = ["seed_1_1"]
+
+seed = []
+seed_1_1 = []
+seed_1_2 = []
+patch_sm = []
+# defmt = []
 
 [patch.crates-io]
 # embassy-stm32 = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }

@@ -1,5 +1,43 @@
 #![no_std]
+
+// use same configuration concept as https://github.com/zlosynth/daisy
+#[cfg(all(
+    feature = "seed_1_2",
+    any(feature = "seed_1_1", feature = "seed", feature = "patch_sm")
+))]
+compile_error!("only a single target board must be selected");
+
+#[cfg(all(
+    feature = "seed_1_1",
+    any(feature = "seed_1_2", feature = "seed", feature = "patch_sm")
+))]
+compile_error!("only a single target board must be selected");
+
+#[cfg(all(
+    feature = "seed",
+    any(feature = "seed_1_2", feature = "seed_1_1", feature = "patch_sm")
+))]
+compile_error!("only a single target board must be selected");
+
+#[cfg(all(
+    feature = "patch_sm",
+    any(feature = "seed_1_2", feature = "seed_1_1", feature = "seed")
+))]
+compile_error!("only a single target board must be selected");
+
+#[cfg(not(any(
+    feature = "seed_1_2",
+    feature = "seed_1_1",
+    feature = "seed",
+    feature = "patch_sm"
+)))]
+compile_error!(
+    "target board must be selected using a feature: \"seed_1_2\" | \"seed_1_1\" | \"seed\" | \"patch_sm\""
+);
+
+
 pub mod audio;
+pub mod codec;
 pub mod board;
 pub mod flash;
 pub mod led;
@@ -9,6 +47,7 @@ pub mod usb;
 
 pub use board::DaisyBoard;
 pub use embassy_stm32 as hal;
+pub use codec::{Codec, Pins as CodecPins};
 
 pub fn default_rcc() -> hal::Config {
     let mut config = hal::Config::default();
@@ -93,8 +132,10 @@ macro_rules! new_daisy_board {
             },
             user_led: daisy_embassy::led::UserLed::new($p.PC7),
 
+            #[cfg(feature = "seed_1_1")]
             audio_peripherals: daisy_embassy::audio::AudioPeripherals {
-                wm8731: daisy_embassy::pins::WM8731Pins {
+                codec: daisy_embassy::Codec {},
+                codec_pins: daisy_embassy::CodecPins {
                     SCL: $p.PH4,
                     SDA: $p.PB11,
                     MCLK_A: $p.PE2,
@@ -108,6 +149,19 @@ macro_rules! new_daisy_board {
                 dma1_ch1: $p.DMA1_CH1,
                 dma1_ch2: $p.DMA1_CH2,
             },
+
+            // ToDo: Add support for PCM3060
+            // #[cfg(feature = "seed_1_2")]
+            // audio_peripherals: daisy_embassy::audio::AudioPeripherals {
+            //     : daisy_embassy::codec::CodecPins {
+            //         ToDo
+            //     },
+            //     sai1: $p.SAI1,
+            //     i2c2: $p.I2C2,
+            //     dma1_ch1: $p.DMA1_CH1,
+            //     dma1_ch2: $p.DMA1_CH2,
+            // },
+
             flash: daisy_embassy::flash::FlashBuilder {
                 pins: daisy_embassy::pins::FlashPins {
                     IO0: $p.PF8,

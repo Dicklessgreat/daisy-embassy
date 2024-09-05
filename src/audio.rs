@@ -1,4 +1,3 @@
-use crate::pins::WM8731Pins;
 use defmt::info;
 use defmt::unwrap;
 use embassy_stm32 as hal;
@@ -15,6 +14,8 @@ use hal::{
     },
     time::Hertz,
 };
+use super::codec::{Codec, Pins as CodecPins};
+
 // - global constants ---------------------------------------------------------
 
 const I2C_FS: Hertz = Hertz(100_000);
@@ -34,7 +35,8 @@ static mut RX_BUFFER: GroundedArrayCell<u32, DMA_BUFFER_LENGTH> = GroundedArrayC
 
 pub type InterleavedBlock = [u32; HALF_DMA_BUFFER_LENGTH];
 pub struct AudioPeripherals {
-    pub wm8731: WM8731Pins,
+    pub codec: Codec,
+    pub codec_pins: CodecPins,
     pub sai1: hal::peripherals::SAI1,
     pub i2c2: hal::peripherals::I2C2,
     pub dma1_ch1: hal::peripherals::DMA1_CH1,
@@ -47,8 +49,8 @@ impl AudioPeripherals {
         let i2c_config = hal::i2c::Config::default();
         let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
             self.i2c2,
-            self.wm8731.SCL,
-            self.wm8731.SDA,
+            self.codec_pins.SCL,
+            self.codec_pins.SDA,
             I2C_FS,
             i2c_config,
         );
@@ -87,7 +89,7 @@ impl AudioPeripherals {
         };
         let sai_tx = hal::sai::Sai::new_synchronous(
             sub_block_transmitter,
-            self.wm8731.SD_B,
+            self.codec_pins.SD_B,
             self.dma1_ch1,
             tx_buffer,
             sai_tx_config,
@@ -100,10 +102,10 @@ impl AudioPeripherals {
         };
         let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
             sub_block_receiver,
-            self.wm8731.SCK_A,
-            self.wm8731.SD_A,
-            self.wm8731.FS_A,
-            self.wm8731.MCLK_A,
+            self.codec_pins.SCK_A,
+            self.codec_pins.SD_A,
+            self.codec_pins.FS_A,
+            self.codec_pins.MCLK_A,
             self.dma1_ch2,
             rx_buffer,
             sai_rx_config,
