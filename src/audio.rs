@@ -14,7 +14,8 @@ use hal::{
     },
     time::Hertz,
 };
-use super::codec::{Codec, Pins as CodecPins};
+use crate::codec::{Codec, Pins as CodecPins};
+
 
 // - global constants ---------------------------------------------------------
 
@@ -39,12 +40,14 @@ pub struct AudioPeripherals {
     pub codec_pins: CodecPins,
     pub sai1: hal::peripherals::SAI1,
     pub i2c2: hal::peripherals::I2C2,
+    pub dma1_ch0: hal::peripherals::DMA1_CH0,
     pub dma1_ch1: hal::peripherals::DMA1_CH1,
     pub dma1_ch2: hal::peripherals::DMA1_CH2,
 }
 
 impl AudioPeripherals {
     pub async fn prepare_interface<'a>(self, audio_config: AudioConfig) -> Interface<'a> {
+
         info!("set up i2c");
         let i2c_config = hal::i2c::Config::default();
         let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
@@ -55,7 +58,7 @@ impl AudioPeripherals {
             i2c_config,
         );
         info!("set up WM8731");
-        setup_wm8731(&mut i2c, audio_config.fs).await;
+        Codec::setup_wm8731(&mut i2c, audio_config.fs).await;
 
         info!("set up sai_tx");
         let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(self.sai1);
@@ -87,10 +90,24 @@ impl AudioPeripherals {
             let (ptr, len) = TX_BUFFER.get_ptr_len();
             core::slice::from_raw_parts_mut(ptr, len)
         };
+
+        #[cfg(feature = "seed_1_1")]
         let sai_tx = hal::sai::Sai::new_synchronous(
             sub_block_transmitter,
             self.codec_pins.SD_B,
             self.dma1_ch1,
+            tx_buffer,
+            sai_tx_config,
+        );
+
+        #[cfg(feature = "seed_1_2")]
+        let mut sai_tx = Sai::new_asynchronous_with_mclk(
+            sub_block_transmitter,
+            self.codec_pins.PE5,
+            self.codec_pins.PE6,
+            self.codec_pins.PE4,
+            self.codec_pins.PE2,
+            self.dma1_ch0,
             tx_buffer,
             sai_tx_config,
         );
@@ -100,6 +117,8 @@ impl AudioPeripherals {
             let (ptr, len) = RX_BUFFER.get_ptr_len();
             core::slice::from_raw_parts_mut(ptr, len)
         };
+
+        #[cfg(feature = "seed_1_1")]
         let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
             sub_block_receiver,
             self.codec_pins.SCK_A,
@@ -111,51 +130,32 @@ impl AudioPeripherals {
             sai_rx_config,
         );
 
-        Interface {
+        #[cfg(feature = "seed_1_2")]
+        let mut sai_rx = Sai::new_synchronous(
+            sub_block_rx, p.PE3, p.DMA1_CH1, rx_buffer, rx_config
+        );
+
+        #[cfg(feature = "seed_1_1")]
+        return Interface {
             sai_rx_config,
             sai_tx_config,
             sai_rx,
             sai_tx,
             i2c,
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Fs {
-    Fs8000,
-    Fs32000,
-    Fs44100,
-    Fs48000,
-    Fs88200,
-    Fs96000,
-}
-const CLOCK_RATIO: u32 = 256; //Not yet support oversampling.
-impl Fs {
-    fn into_clock_divider(self) -> MasterClockDivider {
-        let fs = match self {
-            Fs::Fs8000 => 8000,
-            Fs::Fs32000 => 32000,
-            Fs::Fs44100 => 44100,
-            Fs::Fs48000 => 48000,
-            Fs::Fs88200 => 88200,
-            Fs::Fs96000 => 96000,
         };
-        let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
-        let mclk_div = (kernel_clock / (fs * CLOCK_RATIO)) as u8;
-        mclk_div_from_u8(mclk_div)
+
+        #[cfg(feature = "seed_1_2")]
+        return Interface {
+            sai_rx_config,
+            sai_tx_config,
+            sai_rx,
+            sai_tx,
+            i2c,
+        };
+
     }
 }
 
-pub struct AudioConfig {
-    fs: Fs,
-}
-
-impl Default for AudioConfig {
-    fn default() -> Self {
-        AudioConfig { fs: Fs::Fs48000 }
-    }
-}
 
 pub struct Interface<'a> {
     sai_tx_config: sai::Config,
@@ -196,146 +196,56 @@ impl<'a> Interface<'a> {
     }
 
     async fn setup(&mut self) {
-        info!("setup WM8731");
-        write_wm8731_reg(
-            &mut self.i2c,
-            wm8731::WM8731::power_down(final_power_settings),
-        );
-        Timer::after_micros(10).await;
-
+        #[cfg(feature = "seed_1_1")] {
+            info!("setup WM8731");
+            Codec::write_wm8731_reg(
+                &mut self.i2c,
+                wm8731::WM8731::power_down(Codec::final_power_settings),
+            );
+            Timer::after_micros(10).await;
+        }
         info!("start SAI");
         self.sai_tx.start();
         self.sai_rx.start();
     }
 }
 
-//====================wm8731 register set up functions============================
-async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>, fs: Fs) {
-    use wm8731::WM8731;
-    info!("setup wm8731 from I2C");
 
-    Timer::after_micros(10).await;
-
-    // reset
-    write_wm8731_reg(i2c, WM8731::reset());
-    Timer::after_micros(10).await;
-
-    // wakeup
-    write_wm8731_reg(
-        i2c,
-        WM8731::power_down(|w| {
-            final_power_settings(w);
-            //output off before start()
-            w.output().power_off();
-        }),
-    );
-    Timer::after_micros(10).await;
-
-    // disable input mute, set to 0dB gain
-    write_wm8731_reg(
-        i2c,
-        WM8731::left_line_in(|w| {
-            w.both().enable();
-            w.mute().disable();
-            w.volume().nearest_dB(0);
-        }),
-    );
-    Timer::after_micros(10).await;
-
-    // sidetone off; DAC selected; bypass off; line input selected; mic muted; mic boost off
-    write_wm8731_reg(
-        i2c,
-        WM8731::analog_audio_path(|w| {
-            w.sidetone().disable();
-            w.dac_select().select();
-            w.bypass().disable();
-            w.input_select().line_input();
-            w.mute_mic().enable();
-            w.mic_boost().disable();
-        }),
-    );
-    Timer::after_micros(10).await;
-
-    // disable DAC mute, deemphasis for 48k
-    write_wm8731_reg(
-        i2c,
-        WM8731::digital_audio_path(|w| {
-            w.dac_mut().disable();
-            w.deemphasis().frequency_48();
-        }),
-    );
-    Timer::after_micros(10).await;
-
-    // nothing inverted, slave, 24-bits, MSB format
-    write_wm8731_reg(
-        i2c,
-        WM8731::digital_audio_interface_format(|w| {
-            w.bit_clock_invert().no_invert();
-            w.master_slave().slave();
-            w.left_right_dac_clock_swap().right_channel_dac_data_right();
-            w.left_right_phase().data_when_daclrc_low();
-            w.bit_length().bits_24();
-            w.format().left_justified();
-        }),
-    );
-    Timer::after_micros(10).await;
-
-    // no clock division, normal mode
-    write_wm8731_reg(
-        i2c,
-        WM8731::sampling(|w| {
-            w.core_clock_divider_select().normal();
-            w.base_oversampling_rate().normal_256();
-            match fs {
-                Fs::Fs8000 => {
-                    w.sample_rate().adc_8();
-                }
-                Fs::Fs32000 => {
-                    w.sample_rate().adc_32();
-                }
-                Fs::Fs44100 => {
-                    w.sample_rate().adc_441();
-                }
-                Fs::Fs48000 => {
-                    w.sample_rate().adc_48();
-                }
-                Fs::Fs88200 => {
-                    w.sample_rate().adc_882();
-                }
-                Fs::Fs96000 => {
-                    w.sample_rate().adc_96();
-                }
-            }
-            w.usb_normal().normal();
-        }),
-    );
-    Timer::after_micros(10).await;
-
-    // set active
-    write_wm8731_reg(i2c, WM8731::active().active());
-    Timer::after_micros(10).await;
-
-    //Note: WM8731's output not yet enabled.
+#[derive(Clone, Copy)]
+pub enum Fs {
+    Fs8000,
+    Fs32000,
+    Fs44100,
+    Fs48000,
+    Fs88200,
+    Fs96000,
 }
-fn write_wm8731_reg(i2c: &mut hal::i2c::I2c<'_, hal::mode::Blocking>, r: wm8731::Register) {
-    const AD: u8 = 0x1a; // or 0x1b if CSB is high
-
-    // WM8731 has 16 bits registers.
-    // The first 7 bits are for the addresses, and the rest 9 bits are for the "value"s.
-    // Let's pack wm8731::Register into 16 bits.
-    let byte1: u8 = ((r.address << 1) & 0b1111_1110) | (((r.value >> 8) & 0b0000_0001) as u8);
-    let byte2: u8 = (r.value & 0b1111_1111) as u8;
-    unwrap!(i2c.blocking_write(AD, &[byte1, byte2]));
+const CLOCK_RATIO: u32 = 256; //Not yet support oversampling.
+impl Fs {
+    pub fn into_clock_divider(self) -> MasterClockDivider {
+        let fs = match self {
+            Fs::Fs8000 => 8000,
+            Fs::Fs32000 => 32000,
+            Fs::Fs44100 => 44100,
+            Fs::Fs48000 => 48000,
+            Fs::Fs88200 => 88200,
+            Fs::Fs96000 => 96000,
+        };
+        let kernel_clock = hal::rcc::frequency::<hal::peripherals::SAI1>().0;
+        let mclk_div = (kernel_clock / (fs * CLOCK_RATIO)) as u8;
+        mclk_div_from_u8(mclk_div)
+    }
 }
-fn final_power_settings(w: &mut wm8731::power_down::PowerDown) {
-    w.power_off().power_on();
-    w.clock_output().power_off();
-    w.oscillator().power_off();
-    w.output().power_on();
-    w.dac().power_on();
-    w.adc().power_on();
-    w.mic().power_off();
-    w.line_input().power_on();
+
+
+pub struct AudioConfig {
+    pub fs: Fs,
+}
+
+impl Default for AudioConfig {
+    fn default() -> Self {
+        AudioConfig { fs: Fs::Fs48000 }
+    }
 }
 
 //================================================

@@ -146,6 +146,7 @@ macro_rules! new_daisy_board {
                 },
                 sai1: $p.SAI1,
                 i2c2: $p.I2C2,
+                dma1_ch0: $p.DMA1_CH0,
                 dma1_ch1: $p.DMA1_CH1,
                 dma1_ch2: $p.DMA1_CH2,
             },
