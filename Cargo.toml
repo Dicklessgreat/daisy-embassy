@@ -6,12 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# embassy-stm32 = { version = "0.1.0", features = ["defmt", "stm32h750ib", "time-driver-any", "exti", "memory-x", "unstable-pac", "chrono"] }
-# embassy-time = { version = "0.3.1", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
-# embassy-sync = { version = "0.6.0", features = ["defmt"] }
-embassy-stm32 = { path = "../_third_party/embassy/embassy-stm32", features = ["defmt", "stm32h750ib", "time-driver-tim5", "exti", "memory-x", "unstable-pac", "chrono"] }
-embassy-time = { path = "../_third_party/embassy/embassy-time", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
-embassy-sync = { path = "../_third_party/embassy/embassy-sync", features = ["defmt"] }
+embassy-stm32 = { version = "0.1.0", features = ["defmt", "stm32h750ib", "time-driver-tim5", "exti", "memory-x", "unstable-pac", "chrono"] }
+embassy-time = { version = "0.3.2", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
+embassy-sync = { version = "0.6.0", features = ["defmt"] }
+# these are for developing usb_uac example
+# embassy-stm32 = { path = "../_third_party/embassy/embassy-stm32", features = ["defmt", "stm32h750ib", "time-driver-tim5", "exti", "memory-x", "unstable-pac", "chrono"] }
+# embassy-time = { path = "../_third_party/embassy/embassy-time", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
+# embassy-sync = { path = "../_third_party/embassy/embassy-sync", features = ["defmt"] }
 cortex-m = "0.7.7"
 static_cell = "2.1.0"
 defmt = "0.3.8"
@@ -25,12 +26,13 @@ cortex-m-rt = { version = "0.7.0", features = ["device"] }
 defmt = "0.3.8"
 defmt-rtt = "0.4.1"
 panic-probe = { version = "0.3.2", features = ["print-defmt"] }
-# embassy-executor = { version = "0.6.0", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
-# embassy-futures = "0.1.1"
-# embassy-usb = "0.3.0"
-embassy-executor = { path = "../_third_party/embassy/embassy-executor", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
-embassy-futures = { path = "../_third_party/embassy/embassy-futures" }
-embassy-usb = { path = "../_third_party/embassy/embassy-usb" }
+embassy-executor = { version = "0.6.0", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+embassy-futures = "0.1.1"
+embassy-usb = "0.3.0"
+# these are for developing usb_uac example
+# embassy-executor = { path = "../_third_party/embassy/embassy-executor", features = ["task-arena-size-32768", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+# embassy-futures = { path = "../_third_party/embassy/embassy-futures" }
+# embassy-usb = { path = "../_third_party/embassy/embassy-usb" }
 embedded-test = { version = "0.4.0", features = ["defmt", "embassy", "external-executor", "panic-handler"] }
 critical-section = "1.1"
 heapless = { version = "0.8", default-features = false }
@@ -46,12 +48,12 @@ patch_sm = []
 # defmt = []
 
 [patch.crates-io]
-# embassy-stm32 = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
-# embassy-time = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
-# embassy-sync = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
-# embassy-executor = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
-# embassy-futures = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
-# embassy-usb = { git = "https://github.com/elagil/embassy.git", rev = "90e7292821b497569c907474998e190b46c8cf42" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "ca3d091faf3ef76ea45f88eea5c2a6700378daff" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "ca3d091faf3ef76ea45f88eea5c2a6700378daff" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "ca3d091faf3ef76ea45f88eea5c2a6700378daff" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "ca3d091faf3ef76ea45f88eea5c2a6700378daff" }
+embassy-futures = { git = "https://github.com/embassy-rs/embassy.git", rev = "ca3d091faf3ef76ea45f88eea5c2a6700378daff" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "ca3d091faf3ef76ea45f88eea5c2a6700378daff" }
 
 [profile.release]
 codegen-units = 1
