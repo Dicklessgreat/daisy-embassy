@@ -3,6 +3,7 @@
 #![no_std]
 #![no_main]
 
+use daisy_embassy::hal::{bind_interrupts, peripherals, usb};
 use defmt::{panic, *};
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
@@ -10,7 +11,12 @@ use embassy_stm32::usb::{Config, Driver, Instance};
 use embassy_usb::class::midi::MidiClass;
 use embassy_usb::driver::EndpointError;
 use embassy_usb::Builder;
+use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
+
+bind_interrupts!(pub struct Irqs {
+    OTG_FS => usb::InterruptHandler<peripherals::USB_OTG_FS>;
+});
 
 // If you are trying this and your USB device doesn't connect, the most
 // common issues are the RCC config and vbus_detection
@@ -32,7 +38,17 @@ async fn main(_spawner: Spawner) {
     // has to support it or USB won't work at all. See docs on `vbus_detection` for details.
     config.vbus_detection = false;
 
-    let driver = board.usb_peripherals.build(config);
+    static EP_OUT_BUFFER: StaticCell<[u8; 256]> = StaticCell::new();
+    let ep_out_buffer = EP_OUT_BUFFER.init([0; 256]);
+
+    let driver = Driver::new_fs(
+        board.usb_peripherals.usb_otg_fs,
+        Irqs,
+        board.usb_peripherals.pins.DP,
+        board.usb_peripherals.pins.DN,
+        ep_out_buffer,
+        config,
+    );
 
     // Create embassy-usb Config
     let mut config = embassy_usb::Config::new(0xdead, 0xc0de);
