@@ -132,7 +132,6 @@ macro_rules! new_daisy_board {
             },
             user_led: daisy_embassy::led::UserLed::new($p.PC7),
 
-            #[cfg(feature = "seed_1_1")]
             audio_peripherals: daisy_embassy::audio::AudioPeripherals {
                 codec: daisy_embassy::Codec {},
                 codec_pins: daisy_embassy::CodecPins {
@@ -150,18 +149,6 @@ macro_rules! new_daisy_board {
                 dma1_ch1: $p.DMA1_CH1,
                 dma1_ch2: $p.DMA1_CH2,
             },
-
-            // ToDo: Add support for PCM3060
-            // #[cfg(feature = "seed_1_2")]
-            // audio_peripherals: daisy_embassy::audio::AudioPeripherals {
-            //     : daisy_embassy::codec::CodecPins {
-            //         ToDo
-            //     },
-            //     sai1: $p.SAI1,
-            //     i2c2: $p.I2C2,
-            //     dma1_ch1: $p.DMA1_CH1,
-            //     dma1_ch2: $p.DMA1_CH2,
-            // },
 
             flash: daisy_embassy::flash::FlashBuilder {
                 pins: daisy_embassy::pins::FlashPins {

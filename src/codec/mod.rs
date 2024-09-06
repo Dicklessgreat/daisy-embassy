@@ -10,8 +10,3 @@ pub use wm8731::{Codec, Pins};
 mod pcm3060;
 #[cfg(feature = "seed_1_2")]
 pub use pcm3060::{Codec, Pins};
-
-
-use embassy_stm32 as hal;
-use hal::sai::MasterClockDivider;
-

@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use daisy_embassy::{hal, new_daisy_board};
+use daisy_embassy::{hal, new_daisy_board, audio::HALF_DMA_BUFFER_LENGTH};
 use defmt::debug;
 use embassy_executor::Spawner;
 use {defmt_rtt as _, panic_probe as _};

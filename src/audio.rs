@@ -48,110 +48,153 @@ pub struct AudioPeripherals {
 impl AudioPeripherals {
     pub async fn prepare_interface<'a>(self, audio_config: AudioConfig) -> Interface<'a> {
 
-        info!("set up i2c");
-        let i2c_config = hal::i2c::Config::default();
-        let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
-            self.i2c2,
-            self.codec_pins.SCL,
-            self.codec_pins.SDA,
-            I2C_FS,
-            i2c_config,
-        );
-        info!("set up WM8731");
-        Codec::setup_wm8731(&mut i2c, audio_config.fs).await;
+        #[cfg(feature = "seed_1_1")] {
+            info!("set up i2c");
+            let i2c_config = hal::i2c::Config::default();
+            let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
+                self.i2c2,
+                self.codec_pins.SCL,
+                self.codec_pins.SDA,
+                I2C_FS,
+                i2c_config,
+            );
+            info!("set up WM8731");
+            Codec::setup_wm8731(&mut i2c, audio_config.fs).await;
 
-        info!("set up sai_tx");
-        let (sub_block_receiver, sub_block_transmitter) = hal::sai::split_subblocks(self.sai1);
+            info!("set up sai_tx");
+            let (sub_block_rx, sub_block_tx) = hal::sai::split_subblocks(self.sai1);
+            let mut sai_rx_config = Config::default();
+            sai_rx_config.mode = Mode::Master;
+            sai_rx_config.tx_rx = TxRx::Receiver;
+            sai_rx_config.sync_output = true;
+            sai_rx_config.clock_strobe = ClockStrobe::Falling;
+            sai_rx_config.master_clock_divider = audio_config.fs.into_clock_divider();
+            sai_rx_config.stereo_mono = StereoMono::Stereo;
+            sai_rx_config.data_size = DataSize::Data24;
+            sai_rx_config.bit_order = BitOrder::MsbFirst;
+            sai_rx_config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+            sai_rx_config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
+            sai_rx_config.frame_length = 64;
+            sai_rx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
+            sai_rx_config.fifo_threshold = FifoThreshold::Quarter;
+    
+            let mut sai_tx_config = sai_rx_config;
+            sai_tx_config.mode = Mode::Slave;
+            sai_tx_config.tx_rx = TxRx::Transmitter;
+            sai_tx_config.sync_input = SyncInput::Internal;
+            sai_tx_config.clock_strobe = ClockStrobe::Rising;
+            sai_tx_config.sync_output = false;
 
-        let mut sai_rx_config = Config::default();
-        sai_rx_config.mode = Mode::Master;
-        sai_rx_config.tx_rx = TxRx::Receiver;
-        sai_rx_config.sync_output = true;
-        sai_rx_config.clock_strobe = ClockStrobe::Falling;
-        sai_rx_config.master_clock_divider = audio_config.fs.into_clock_divider();
-        sai_rx_config.stereo_mono = StereoMono::Stereo;
-        sai_rx_config.data_size = DataSize::Data24;
-        sai_rx_config.bit_order = BitOrder::MsbFirst;
-        sai_rx_config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
-        sai_rx_config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
-        sai_rx_config.frame_length = 64;
-        sai_rx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
-        sai_rx_config.fifo_threshold = FifoThreshold::Quarter;
+            let tx_buffer: &mut [u32] = unsafe {
+                TX_BUFFER.initialize_all_copied(0);
+                let (ptr, len) = TX_BUFFER.get_ptr_len();
+                core::slice::from_raw_parts_mut(ptr, len)
+            };
 
-        let mut sai_tx_config = sai_rx_config;
-        sai_tx_config.mode = Mode::Slave;
-        sai_tx_config.tx_rx = TxRx::Transmitter;
-        sai_tx_config.sync_input = SyncInput::Internal;
-        sai_tx_config.clock_strobe = ClockStrobe::Rising;
-        sai_tx_config.sync_output = false;
+            let sai_tx = hal::sai::Sai::new_synchronous(
+                sub_block_tx,
+                self.codec_pins.SD_B,
+                self.dma1_ch1,
+                tx_buffer,
+                sai_tx_config,
+            );
 
-        let tx_buffer: &mut [u32] = unsafe {
-            TX_BUFFER.initialize_all_copied(0);
-            let (ptr, len) = TX_BUFFER.get_ptr_len();
-            core::slice::from_raw_parts_mut(ptr, len)
-        };
 
-        #[cfg(feature = "seed_1_1")]
-        let sai_tx = hal::sai::Sai::new_synchronous(
-            sub_block_transmitter,
-            self.codec_pins.SD_B,
-            self.dma1_ch1,
-            tx_buffer,
-            sai_tx_config,
-        );
+            let rx_buffer: &mut [u32] = unsafe {
+                RX_BUFFER.initialize_all_copied(0);
+                let (ptr, len) = RX_BUFFER.get_ptr_len();
+                core::slice::from_raw_parts_mut(ptr, len)
+            };
 
-        #[cfg(feature = "seed_1_2")]
-        let mut sai_tx = Sai::new_asynchronous_with_mclk(
-            sub_block_transmitter,
-            self.codec_pins.PE5,
-            self.codec_pins.PE6,
-            self.codec_pins.PE4,
-            self.codec_pins.PE2,
-            self.dma1_ch0,
-            tx_buffer,
-            sai_tx_config,
-        );
+            let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
+                sub_block_rx,
+                self.codec_pins.SCK_A,
+                self.codec_pins.SD_A,
+                self.codec_pins.FS_A,
+                self.codec_pins.MCLK_A,
+                self.dma1_ch2,
+                rx_buffer,
+                sai_rx_config,
+            );
 
-        let rx_buffer: &mut [u32] = unsafe {
-            RX_BUFFER.initialize_all_copied(0);
-            let (ptr, len) = RX_BUFFER.get_ptr_len();
-            core::slice::from_raw_parts_mut(ptr, len)
-        };
+            return Interface {
+                sai_rx_config,
+                sai_tx_config,
+                sai_rx,
+                sai_tx,
+                i2c,
+            };
+        }
 
-        #[cfg(feature = "seed_1_1")]
-        let sai_rx = hal::sai::Sai::new_asynchronous_with_mclk(
-            sub_block_receiver,
-            self.codec_pins.SCK_A,
-            self.codec_pins.SD_A,
-            self.codec_pins.FS_A,
-            self.codec_pins.MCLK_A,
-            self.dma1_ch2,
-            rx_buffer,
-            sai_rx_config,
-        );
+        #[cfg(feature = "seed_1_2")] {
+            let (sub_block_tx, sub_block_rx) = hal::sai::split_subblocks(self.sai1);
+            let mut sai_tx_config = hal::sai::Config::default();
+            sai_tx_config.mode = Mode::Master;
+            sai_tx_config.tx_rx = TxRx::Transmitter;
+            sai_tx_config.sync_output = true;
+            sai_tx_config.clock_strobe = ClockStrobe::Falling;
+            sai_tx_config.master_clock_divider = audio_config.fs.into_clock_divider();
+            sai_tx_config.stereo_mono = StereoMono::Stereo;
+            sai_tx_config.data_size = DataSize::Data24;
+            sai_tx_config.bit_order = BitOrder::MsbFirst;
+            sai_tx_config.frame_sync_polarity = FrameSyncPolarity::ActiveHigh;
+            sai_tx_config.frame_sync_offset = FrameSyncOffset::OnFirstBit;
+            sai_tx_config.frame_length = 64;
+            sai_tx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
+            sai_tx_config.fifo_threshold = FifoThreshold::Quarter;
+        
+            let mut sai_rx_config = sai_tx_config.clone();
+            sai_rx_config.mode = Mode::Slave;
+            sai_rx_config.tx_rx = TxRx::Receiver;
+            sai_rx_config.sync_input = SyncInput::Internal;
+            sai_rx_config.clock_strobe = ClockStrobe::Rising;
+            sai_rx_config.sync_output = false;
 
-        #[cfg(feature = "seed_1_2")]
-        let mut sai_rx = Sai::new_synchronous(
-            sub_block_rx, p.PE3, p.DMA1_CH1, rx_buffer, rx_config
-        );
+                    
+            let tx_buffer: &mut [u32] = unsafe {
+                TX_BUFFER.initialize_all_copied(0);
+                let (ptr, len) = TX_BUFFER.get_ptr_len();
+                core::slice::from_raw_parts_mut(ptr, len)
+            };
 
-        #[cfg(feature = "seed_1_1")]
-        return Interface {
-            sai_rx_config,
-            sai_tx_config,
-            sai_rx,
-            sai_tx,
-            i2c,
-        };
 
-        #[cfg(feature = "seed_1_2")]
-        return Interface {
-            sai_rx_config,
-            sai_tx_config,
-            sai_rx,
-            sai_tx,
-            i2c,
-        };
+            let rx_buffer: &mut [u32] = unsafe {
+                RX_BUFFER.initialize_all_copied(0);
+                let (ptr, len) = RX_BUFFER.get_ptr_len();
+                core::slice::from_raw_parts_mut(ptr, len)
+            };
+
+            let mut sai_tx = Sai::new_asynchronous_with_mclk(
+                sub_block_tx,
+                self.codec_pins.SCK_A,
+                self.codec_pins.SD_A,
+                self.codec_pins.FS_A,
+                self.codec_pins.MCLK_A,
+                self.dma1_ch0,
+                tx_buffer,
+                sai_tx_config,
+            );
+            let mut sai_rx = Sai::new_synchronous(
+                sub_block_rx, self.codec_pins.SD_B, self.dma1_ch1, rx_buffer, sai_rx_config
+            );
+            let i2c_config = hal::i2c::Config::default();
+            let i2c = hal::i2c::I2c::new_blocking(
+                self.i2c2,
+                self.codec_pins.SCL,
+                self.codec_pins.SDA,
+                I2C_FS,
+                i2c_config,
+            );
+            return Interface {
+                sai_rx_config,
+                sai_tx_config,
+                sai_rx,
+                sai_tx,
+                i2c,
+            };
+        }
+
+
 
     }
 }
@@ -169,18 +212,26 @@ impl<'a> Interface<'a> {
     pub async fn start(&mut self, mut callback: impl FnMut(&[u32], &mut [u32])) -> ! {
         self.setup().await;
         info!("enter audio callback loop");
+        let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
+        let mut read_buf = [0; HALF_DMA_BUFFER_LENGTH];
         loop {
-            let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
-            let mut read_buf = [0; HALF_DMA_BUFFER_LENGTH];
-            unwrap!(self.sai_rx.read(&mut read_buf).await);
-            callback(&read_buf, &mut write_buf);
-            unwrap!(self.sai_tx.write(&write_buf).await);
+
+            #[cfg(feature = "seed_1_1")] {
+                unwrap!(self.sai_rx.read(&mut read_buf).await);
+                callback(&read_buf, &mut write_buf);
+                unwrap!(self.sai_tx.write(&write_buf).await);
+            }
+
+            #[cfg(feature = "seed_1_2")] {
+                unwrap!(self.sai_rx.read(&mut read_buf).await);
+                unwrap!(self.sai_tx.write(&read_buf).await);
+            }
         }
     }
-    pub fn rx_config(&self) -> &sai::Config {
+    pub fn sai_rx_config(&self) -> &sai::Config {
         &self.sai_rx_config
     }
-    pub fn tx_config(&self) -> &sai::Config {
+    pub fn sai_tx_config(&self) -> &sai::Config {
         &self.sai_tx_config
     }
     // returns (sai_tx, sai_rx, i2c)
@@ -204,6 +255,8 @@ impl<'a> Interface<'a> {
             );
             Timer::after_micros(10).await;
         }
+
+        
         info!("start SAI");
         self.sai_tx.start();
         self.sai_rx.start();
