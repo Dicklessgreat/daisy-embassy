@@ -1,3 +1,4 @@
+use crate::codec::{Codec, Pins as CodecPins};
 use defmt::info;
 use defmt::unwrap;
 use embassy_stm32 as hal;
@@ -14,8 +15,6 @@ use hal::{
     },
     time::Hertz,
 };
-use crate::codec::{Codec, Pins as CodecPins};
-
 
 // - global constants ---------------------------------------------------------
 
@@ -47,8 +46,8 @@ pub struct AudioPeripherals {
 
 impl AudioPeripherals {
     pub async fn prepare_interface<'a>(self, audio_config: AudioConfig) -> Interface<'a> {
-
-        #[cfg(feature = "seed_1_1")] {
+        #[cfg(feature = "seed_1_1")]
+        {
             info!("set up i2c");
             let i2c_config = hal::i2c::Config::default();
             let mut i2c = embassy_stm32::i2c::I2c::new_blocking(
@@ -77,7 +76,7 @@ impl AudioPeripherals {
             sai_rx_config.frame_length = 64;
             sai_rx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
             sai_rx_config.fifo_threshold = FifoThreshold::Quarter;
-    
+
             let mut sai_tx_config = sai_rx_config;
             sai_tx_config.mode = Mode::Slave;
             sai_tx_config.tx_rx = TxRx::Transmitter;
@@ -98,7 +97,6 @@ impl AudioPeripherals {
                 tx_buffer,
                 sai_tx_config,
             );
-
 
             let rx_buffer: &mut [u32] = unsafe {
                 RX_BUFFER.initialize_all_copied(0);
@@ -126,7 +124,8 @@ impl AudioPeripherals {
             }
         }
 
-        #[cfg(feature = "seed_1_2")] {
+        #[cfg(feature = "seed_1_2")]
+        {
             let (sub_block_tx, sub_block_rx) = hal::sai::split_subblocks(self.sai1);
             let mut sai_tx_config = hal::sai::Config::default();
             sai_tx_config.mode = Mode::Master;
@@ -142,7 +141,7 @@ impl AudioPeripherals {
             sai_tx_config.frame_length = 64;
             sai_tx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
             sai_tx_config.fifo_threshold = FifoThreshold::Quarter;
-        
+
             let mut sai_rx_config = sai_tx_config.clone();
             sai_rx_config.mode = Mode::Slave;
             sai_rx_config.tx_rx = TxRx::Receiver;
@@ -150,13 +149,11 @@ impl AudioPeripherals {
             sai_rx_config.clock_strobe = ClockStrobe::Rising;
             sai_rx_config.sync_output = false;
 
-                    
             let tx_buffer: &mut [u32] = unsafe {
                 TX_BUFFER.initialize_all_copied(0);
                 let (ptr, len) = TX_BUFFER.get_ptr_len();
                 core::slice::from_raw_parts_mut(ptr, len)
             };
-
 
             let rx_buffer: &mut [u32] = unsafe {
                 RX_BUFFER.initialize_all_copied(0);
@@ -175,7 +172,11 @@ impl AudioPeripherals {
                 sai_tx_config,
             );
             let sai_rx = Sai::new_synchronous(
-                sub_block_rx, self.codec_pins.SD_B, self.dma1_ch1, rx_buffer, sai_rx_config
+                sub_block_rx,
+                self.codec_pins.SD_B,
+                self.dma1_ch1,
+                rx_buffer,
+                sai_rx_config,
             );
 
             Interface {
@@ -183,12 +184,11 @@ impl AudioPeripherals {
                 sai_tx_config,
                 sai_rx,
                 sai_tx,
-                i2c: None,  // pcm3060 'hardware mode' doesn't need i2c
+                i2c: None, // pcm3060 'hardware mode' doesn't need i2c
             }
         }
     }
 }
-
 
 pub struct Interface<'a> {
     sai_tx_config: sai::Config,
@@ -213,7 +213,7 @@ impl<'a> Interface<'a> {
     pub fn sai_rx_config(&self) -> &sai::Config {
         &self.sai_rx_config
     }
-    
+
     pub fn sai_tx_config(&self) -> &sai::Config {
         &self.sai_tx_config
     }
@@ -231,22 +231,21 @@ impl<'a> Interface<'a> {
     }
 
     async fn setup(&mut self) {
-        #[cfg(feature = "seed_1_1")] {
+        #[cfg(feature = "seed_1_1")]
+        {
             info!("setup WM8731");
             Codec::write_wm8731_reg(
-                &mut self.i2c.as_mut().unwrap(),
+                self.i2c.as_mut().unwrap(),
                 wm8731::WM8731::power_down(Codec::final_power_settings),
             );
             Timer::after_micros(10).await;
         }
 
-        
         info!("start SAI");
         self.sai_tx.start();
         self.sai_rx.start();
     }
 }
-
 
 #[derive(Clone, Copy)]
 pub enum Fs {
@@ -273,7 +272,6 @@ impl Fs {
         mclk_div_from_u8(mclk_div)
     }
 }
-
 
 pub struct AudioConfig {
     pub fs: Fs,

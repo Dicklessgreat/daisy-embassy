@@ -1,8 +1,8 @@
 use embassy_stm32 as hal;
 use hal::peripherals::*;
 
-use embassy_time::Timer;
 use defmt::{info, unwrap};
+use embassy_time::Timer;
 
 use crate::audio::Fs;
 
@@ -121,7 +121,7 @@ impl Codec {
 
     pub fn write_wm8731_reg(i2c: &mut hal::i2c::I2c<'_, hal::mode::Blocking>, r: wm8731::Register) {
         const AD: u8 = 0x1a; // or 0x1b if CSB is high
-    
+
         // WM8731 has 16 bits registers.
         // The first 7 bits are for the addresses, and the rest 9 bits are for the "value"s.
         // Let's pack wm8731::Register into 16 bits.

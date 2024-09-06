@@ -35,10 +35,9 @@ compile_error!(
     "target board must be selected using a feature: \"seed_1_2\" | \"seed_1_1\" | \"seed\" | \"patch_sm\""
 );
 
-
 pub mod audio;
-pub mod codec;
 pub mod board;
+pub mod codec;
 pub mod flash;
 pub mod led;
 pub mod pins;
@@ -46,8 +45,8 @@ pub mod sdram;
 pub mod usb;
 
 pub use board::DaisyBoard;
-pub use embassy_stm32 as hal;
 pub use codec::{Codec, Pins as CodecPins};
+pub use embassy_stm32 as hal;
 
 pub fn default_rcc() -> hal::Config {
     let mut config = hal::Config::default();
@@ -135,7 +134,6 @@ macro_rules! new_daisy_board {
             audio_peripherals: daisy_embassy::audio::AudioPeripherals {
                 codec: daisy_embassy::Codec {},
                 codec_pins: daisy_embassy::CodecPins {
-
                     // For audio, I2C only needed for WM8731
                     #[cfg(feature = "seed_1_1")]
                     SCL: $p.PH4,
