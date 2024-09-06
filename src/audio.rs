@@ -117,13 +117,13 @@ impl AudioPeripherals {
                 sai_rx_config,
             );
 
-            return Interface {
+            Interface {
                 sai_rx_config,
                 sai_tx_config,
                 sai_rx,
                 sai_tx,
-                i2c,
-            };
+                i2c: Some(i2c),
+            }
         }
 
         #[cfg(feature = "seed_1_2")] {
@@ -164,7 +164,7 @@ impl AudioPeripherals {
                 core::slice::from_raw_parts_mut(ptr, len)
             };
 
-            let mut sai_tx = Sai::new_asynchronous_with_mclk(
+            let sai_tx = Sai::new_asynchronous_with_mclk(
                 sub_block_tx,
                 self.codec_pins.SCK_A,
                 self.codec_pins.SD_A,
@@ -174,28 +174,18 @@ impl AudioPeripherals {
                 tx_buffer,
                 sai_tx_config,
             );
-            let mut sai_rx = Sai::new_synchronous(
+            let sai_rx = Sai::new_synchronous(
                 sub_block_rx, self.codec_pins.SD_B, self.dma1_ch1, rx_buffer, sai_rx_config
             );
-            let i2c_config = hal::i2c::Config::default();
-            let i2c = hal::i2c::I2c::new_blocking(
-                self.i2c2,
-                self.codec_pins.SCL,
-                self.codec_pins.SDA,
-                I2C_FS,
-                i2c_config,
-            );
-            return Interface {
+
+            Interface {
                 sai_rx_config,
                 sai_tx_config,
                 sai_rx,
                 sai_tx,
-                i2c,
-            };
+                i2c: None,  // pcm3060 'hardware mode' doesn't need i2c
+            }
         }
-
-
-
     }
 }
 
@@ -205,7 +195,7 @@ pub struct Interface<'a> {
     sai_rx_config: sai::Config,
     sai_tx: Sai<'a, peripherals::SAI1, u32>,
     sai_rx: Sai<'a, peripherals::SAI1, u32>,
-    i2c: hal::i2c::I2c<'a, hal::mode::Blocking>,
+    i2c: Option<hal::i2c::I2c<'a, hal::mode::Blocking>>,
 }
 
 impl<'a> Interface<'a> {
@@ -237,14 +227,14 @@ impl<'a> Interface<'a> {
         hal::i2c::I2c<'a, hal::mode::Blocking>,
     ) {
         self.setup().await;
-        (self.sai_tx, self.sai_rx, self.i2c)
+        (self.sai_tx, self.sai_rx, unwrap!(self.i2c))
     }
 
     async fn setup(&mut self) {
         #[cfg(feature = "seed_1_1")] {
             info!("setup WM8731");
             Codec::write_wm8731_reg(
-                &mut self.i2c,
+                &mut self.i2c.as_mut().unwrap(),
                 wm8731::WM8731::power_down(Codec::final_power_settings),
             );
             Timer::after_micros(10).await;

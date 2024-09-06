@@ -135,8 +135,13 @@ macro_rules! new_daisy_board {
             audio_peripherals: daisy_embassy::audio::AudioPeripherals {
                 codec: daisy_embassy::Codec {},
                 codec_pins: daisy_embassy::CodecPins {
+
+                    // For audio, I2C only needed for WM8731
+                    #[cfg(feature = "seed_1_1")]
                     SCL: $p.PH4,
+                    #[cfg(feature = "seed_1_1")]
                     SDA: $p.PB11,
+
                     MCLK_A: $p.PE2,
                     SCK_A: $p.PE5,
                     FS_A: $p.PE4,
