@@ -7,12 +7,11 @@
 #![no_std]
 #![no_main]
 
-use embassy_time::Timer;
-use daisy_embassy::{audio::HALF_DMA_BUFFER_LENGTH, hal, led::{self, UserLed}, new_daisy_board, DaisyBoard};
-use defmt::{debug, info};
+use daisy_embassy::{hal, led::UserLed, new_daisy_board, DaisyBoard};
+use defmt::debug;
 use embassy_executor::Spawner;
+use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _};
-
 
 #[embassy_executor::task]
 async fn blink(mut led: UserLed<'static>) {
@@ -32,10 +31,10 @@ async fn main(spawner: Spawner) {
     let config = daisy_embassy::default_rcc();
     let p = hal::init(config);
     let board: DaisyBoard<'_> = new_daisy_board!(p);
-    
+
     let led = board.user_led;
     spawner.spawn(blink(led)).unwrap();
-    
+
     let mut interface = board
         .audio_peripherals
         .prepare_interface(Default::default())
