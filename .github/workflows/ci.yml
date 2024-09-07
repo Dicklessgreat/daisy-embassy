@@ -33,4 +33,5 @@ jobs:
         with:
           components: clippy
           target: thumbv7em-none-eabihf
-      - run: cargo clippy --all-features -- --deny=warnings
+      - run: cargo clippy --no-default-features --features seed_1_1 -- --deny=warnings
+      - run: cargo clippy --no-default-features --features seed_1_2 -- --deny=warnings
