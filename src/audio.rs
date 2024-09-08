@@ -2,22 +2,23 @@ use crate::codec::{Codec, Pins as CodecPins};
 use defmt::info;
 use defmt::unwrap;
 use embassy_stm32 as hal;
-use embassy_time::Timer;
 use grounded::uninit::GroundedArrayCell;
 use hal::sai::FifoThreshold;
 use hal::sai::FrameSyncOffset;
 use hal::sai::{BitOrder, SyncInput};
+#[cfg(feature = "seed_1_1")]
+use hal::time::Hertz;
 use hal::{
     peripherals,
     sai::{
-        self, ClockStrobe, Config, DataSize, FrameSyncPolarity, MasterClockDivider, Mode, Sai,
-        StereoMono, TxRx,
+        self, ClockStrobe, DataSize, FrameSyncPolarity, MasterClockDivider, Mode, Sai, StereoMono,
+        TxRx,
     },
-    time::Hertz,
 };
 
 // - global constants ---------------------------------------------------------
 
+#[cfg(feature = "seed_1_1")]
 const I2C_FS: Hertz = Hertz(100_000);
 pub const BLOCK_LENGTH: usize = 32; // 32 samples
 pub const HALF_DMA_BUFFER_LENGTH: usize = BLOCK_LENGTH * 2; //  2 channels
@@ -62,7 +63,7 @@ impl AudioPeripherals {
 
             info!("set up sai_tx");
             let (sub_block_rx, sub_block_tx) = hal::sai::split_subblocks(self.sai1);
-            let mut sai_rx_config = Config::default();
+            let mut sai_rx_config = sai::Config::default();
             sai_rx_config.mode = Mode::Master;
             sai_rx_config.tx_rx = TxRx::Receiver;
             sai_rx_config.sync_output = true;
@@ -142,7 +143,7 @@ impl AudioPeripherals {
             sai_tx_config.frame_sync_active_level_length = embassy_stm32::sai::word::U7(32);
             sai_tx_config.fifo_threshold = FifoThreshold::Quarter;
 
-            let mut sai_rx_config = sai_tx_config.clone();
+            let mut sai_rx_config = sai_tx_config;
             sai_rx_config.mode = Mode::Slave;
             sai_rx_config.tx_rx = TxRx::Receiver;
             sai_rx_config.sync_input = SyncInput::Internal;
@@ -238,7 +239,7 @@ impl<'a> Interface<'a> {
                 self.i2c.as_mut().unwrap(),
                 wm8731::WM8731::power_down(Codec::final_power_settings),
             );
-            Timer::after_micros(10).await;
+            embassy_time::Timer::after_micros(10).await;
         }
 
         info!("start SAI");
