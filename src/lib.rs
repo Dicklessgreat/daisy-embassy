@@ -92,6 +92,36 @@ pub fn default_rcc() -> hal::Config {
     config
 }
 
+#[cfg(feature = "seed_1_1")]
+#[macro_export]
+macro_rules! codec_pins {
+    ($p:ident) => {
+        daisy_embassy::CodecPins {
+            // For audio, I2C only needed for WM8731
+            SCL: $p.PH4,
+            SDA: $p.PB11,
+
+            MCLK_A: $p.PE2,
+            SCK_A: $p.PE5,
+            FS_A: $p.PE4,
+            SD_A: $p.PE6,
+            SD_B: $p.PE3,
+        }
+    };
+}
+#[cfg(feature = "seed_1_2")]
+#[macro_export]
+macro_rules! codec_pins {
+    ($p:ident) => {
+        daisy_embassy::CodecPins {
+            MCLK_A: $p.PE2,
+            SCK_A: $p.PE5,
+            FS_A: $p.PE4,
+            SD_A: $p.PE6,
+            SD_B: $p.PE3,
+        }
+    };
+}
 #[macro_export]
 macro_rules! new_daisy_board {
     ($p:ident) => {
@@ -133,19 +163,7 @@ macro_rules! new_daisy_board {
 
             audio_peripherals: daisy_embassy::audio::AudioPeripherals {
                 codec: daisy_embassy::Codec {},
-                codec_pins: daisy_embassy::CodecPins {
-                    // For audio, I2C only needed for WM8731
-                    #[cfg(feature = "seed_1_1")]
-                    SCL: $p.PH4,
-                    #[cfg(feature = "seed_1_1")]
-                    SDA: $p.PB11,
-
-                    MCLK_A: $p.PE2,
-                    SCK_A: $p.PE5,
-                    FS_A: $p.PE4,
-                    SD_A: $p.PE6,
-                    SD_B: $p.PE3,
-                },
+                codec_pins: daisy_embassy::codec_pins!($p),
                 sai1: $p.SAI1,
                 i2c2: $p.I2C2,
                 dma1_ch0: $p.DMA1_CH0,
