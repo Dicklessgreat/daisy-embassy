@@ -1,6 +1,6 @@
 # daisy_embassy
 
-This crate is designed for [daisy seed](https://electro-smith.com/products/daisy-seed) with [embassy](https://github.com/embassy-rs/embassy).
+This crate is designed to write an `async` audio application on [Daisy Seed](https://electro-smith.com/products/daisy-seed) with [Embassy](https://github.com/embassy-rs/embassy).
 
 I have referred to the following:
 
@@ -29,6 +29,6 @@ You can choose your preferred toolset to run the examples, but we recommend you 
 - If you have `rev5`, it's defaulted.So you don't have to care about options.
 - If you have `rev7`, add `--features=seed_1_2 --no-default-features`  option each time you run an example.
 
-### Choose a Example You Want to Run 
+### Choose an Example You Want to Run 
 
 You can run examples with `cargo run --example <example_name>`.
