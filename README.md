@@ -1,6 +1,6 @@
 # daisy_embassy
 
-This crate is designed for daisy seed with embassy.
+This crate is designed for daisy seed with [embassy](https://github.com/embassy-rs/embassy).
 
 I have referred to the following:
 
