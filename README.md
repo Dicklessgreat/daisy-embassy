@@ -1,6 +1,6 @@
 # daisy_embassy
 
-This crate is designed for daisy seed with [embassy](https://github.com/embassy-rs/embassy).
+This crate is designed for [daisy seed](https://electro-smith.com/products/daisy-seed) with [embassy](https://github.com/embassy-rs/embassy).
 
 I have referred to the following:
 
