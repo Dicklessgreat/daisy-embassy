@@ -156,7 +156,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 
 [[package]]
-name = "daisy_embassy"
+name = "daisy-embassy"
 version = "0.1.0"
 dependencies = [
  "cortex-m",
