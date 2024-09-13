@@ -1,4 +1,4 @@
-# daisy_embassy
+# daisy-embassy
 
 This crate is designed to write an `async` audio application on [Daisy Seed](https://electro-smith.com/products/daisy-seed) with [Embassy](https://github.com/embassy-rs/embassy).
 
