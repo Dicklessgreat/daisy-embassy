@@ -55,7 +55,7 @@ pub struct Flash<'a> {
     qspi: Qspi<'a, QUADSPI, Blocking>,
 }
 
-impl<'a> Flash<'a> {
+impl Flash<'_> {
     pub fn read(&mut self, address: u32, buffer: &mut [u8]) {
         assert!(address <= MAX_ADDRESS);
 

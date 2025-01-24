@@ -2,7 +2,7 @@ use embassy_stm32 as hal;
 use hal::gpio::{self, Speed};
 pub struct UserLed<'a>(gpio::Output<'a>);
 
-impl<'a> UserLed<'a> {
+impl UserLed<'_> {
     pub fn new(pin: hal::peripherals::PC7) -> Self {
         Self(gpio::Output::new(pin, gpio::Level::Low, Speed::Low))
     }

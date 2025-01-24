@@ -11,7 +11,7 @@ pub struct Codec {}
 
 impl Codec {
     //====================wm8731 register set up functions============================
-    pub async fn setup_wm8731<'a>(i2c: &mut hal::i2c::I2c<'a, hal::mode::Blocking>, fs: Fs) {
+    pub async fn setup_wm8731(i2c: &mut hal::i2c::I2c<'_, hal::mode::Blocking>, fs: Fs) {
         use wm8731::WM8731;
         info!("setup wm8731 from I2C");
 
