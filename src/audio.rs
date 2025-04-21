@@ -219,7 +219,7 @@ impl<'a> Interface<'a> {
             }));
 
             #[cfg(feature = "panic_on_overrun")]
-            unwrap!(self.sai_tx.read(&write_buf).await);
+            unwrap!(self.sai_rx.read(&mut read_buf).await);
 
             callback(&read_buf, &mut write_buf);
 
