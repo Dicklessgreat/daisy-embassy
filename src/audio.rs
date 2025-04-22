@@ -1,5 +1,4 @@
 use crate::codec::{Codec, Pins as CodecPins};
-use defmt::error;
 use defmt::info;
 use defmt::unwrap;
 use embassy_stm32 as hal;
@@ -16,6 +15,9 @@ use hal::{
         TxRx,
     },
 };
+
+#[cfg(not(feature = "panic_on_overrun"))]
+use defmt::error;
 
 // - global constants ---------------------------------------------------------
 
