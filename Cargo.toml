@@ -45,6 +45,7 @@ seed = []
 seed_1_1 = []
 seed_1_2 = []
 patch_sm = []
+panic_on_overrun = []
 # defmt = []
 
 [patch.crates-io]
