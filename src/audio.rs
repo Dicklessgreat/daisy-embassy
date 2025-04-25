@@ -204,7 +204,7 @@ pub struct Interface<'a> {
 
 impl<'a> Interface<'a> {
     pub async fn start(&mut self, mut callback: impl FnMut(&[u32], &mut [u32])) -> ! {
-        self.setup().await;
+        unwrap!(self.setup().await);
         info!("enter audio callback loop");
         let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
         let mut read_buf = [0; HALF_DMA_BUFFER_LENGTH];
@@ -251,16 +251,19 @@ impl<'a> Interface<'a> {
     // returns (sai_tx, sai_rx, i2c)
     pub async fn setup_and_release(
         mut self,
-    ) -> (
-        Sai<'a, peripherals::SAI1, u32>,
-        Sai<'a, peripherals::SAI1, u32>,
-        hal::i2c::I2c<'a, hal::mode::Blocking>,
-    ) {
-        self.setup().await;
-        (self.sai_tx, self.sai_rx, unwrap!(self.i2c))
+    ) -> Result<
+        (
+            Sai<'a, peripherals::SAI1, u32>,
+            Sai<'a, peripherals::SAI1, u32>,
+            hal::i2c::I2c<'a, hal::mode::Blocking>,
+        ),
+        sai::Error,
+    > {
+        self.setup().await?;
+        Ok((self.sai_tx, self.sai_rx, unwrap!(self.i2c)))
     }
 
-    async fn setup(&mut self) {
+    async fn setup(&mut self) -> Result<(), sai::Error> {
         #[cfg(feature = "seed_1_1")]
         {
             info!("setup WM8731");
@@ -272,8 +275,8 @@ impl<'a> Interface<'a> {
         }
 
         info!("start SAI");
-        self.sai_tx.start();
-        self.sai_rx.start();
+        self.sai_tx.start()?;
+        self.sai_rx.start()
     }
 }
 
