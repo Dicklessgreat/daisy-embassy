@@ -16,6 +16,9 @@ use hal::{
     },
 };
 
+#[cfg(not(feature = "panic_on_overrun"))]
+use defmt::error;
+
 // - global constants ---------------------------------------------------------
 
 #[cfg(feature = "seed_1_1")]
@@ -206,8 +209,34 @@ impl<'a> Interface<'a> {
         let mut write_buf = [0; HALF_DMA_BUFFER_LENGTH];
         let mut read_buf = [0; HALF_DMA_BUFFER_LENGTH];
         loop {
+            #[cfg(not(feature = "panic_on_overrun"))]
+            unwrap!(self.sai_rx.read(&mut read_buf).await.or_else(|e| {
+                match e {
+                    sai::Error::Overrun => {
+                        error!("Overrun on audio buffer read");
+                        Ok(())
+                    }
+                    e => Err(e),
+                }
+            }));
+
+            #[cfg(feature = "panic_on_overrun")]
             unwrap!(self.sai_rx.read(&mut read_buf).await);
+
             callback(&read_buf, &mut write_buf);
+
+            #[cfg(not(feature = "panic_on_overrun"))]
+            unwrap!(self.sai_tx.write(&write_buf).await.or_else(|e| {
+                match e {
+                    sai::Error::Overrun => {
+                        error!("Overrun on audio buffer write");
+                        Ok(())
+                    }
+                    e => Err(e),
+                }
+            }));
+
+            #[cfg(feature = "panic_on_overrun")]
             unwrap!(self.sai_tx.write(&write_buf).await);
         }
     }
