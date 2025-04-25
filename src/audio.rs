@@ -275,7 +275,6 @@ impl<'a> Interface<'a> {
         }
 
         info!("start SAI");
-        self.sai_tx.start()?;
         self.sai_rx.start()
     }
 }
