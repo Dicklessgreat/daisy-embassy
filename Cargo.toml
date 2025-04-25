@@ -2,6 +2,11 @@
 name = "daisy-embassy"
 version = "0.1.0"
 edition = "2021"
+authors = ["DicklessGreat<dicklessgreat@gmail.com>"]
+description = "async audio development with daisy seed and embassy"
+keywords = ["embassy", "async", "audio", "embedded", "no-std"]
+repository = "https://github.com/Dicklessgreat/daisy-embassy"
+categories = ["embedded"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
