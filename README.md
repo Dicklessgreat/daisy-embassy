@@ -1,12 +1,13 @@
 # daisy-embassy
 
-`daisy-embassy` is a Rust crate for building **async audio applications** on the [Daisy Seed](https://electro-smith.com/products/daisy-seed) using the [Embassy framework](https://github.com/embassy-rs/embassy). It provides a streamlined interface to initialize and configure Daisy Seed hardware for low-latency, non-blocking audio processing, making it an **ideal starting point** for embedded audio projects in Rust.
+`daisy-embassy` is a Rust crate for building **embedded async audio applications** on the [Daisy Seed](https://electro-smith.com/products/daisy-seed) using the [Embassy framework](https://github.com/embassy-rs/embassy). It provides a streamlined interface to initialize and configure Daisy Seed hardware for **both** low-latency, non-blocking audio processing **and** powerful asynchronous application processing, making it an **ideal starting point** for embedded audio projects in Rust.
 
 This crate is designed for developers familiar with embedded systems and audio processing, but new to Rust's embedded ecosystem. It enables safe and flexible audio application development, leveraging Rust's type system to prevent common peripheral configuration errors at compile time.
 
 ## Key Features
 
-- **Async Audio Processing**: Leverage Rust's `async`/`await` and Embassy's lightweight runtime for efficient audio pipelines.
+- **Audio Processing as an Integrated Task**: You can treat audio processing as a dedicated task within the Embassy async runtime, ensuring low-latency, non-blocking audio output. This approach allows seamless integration with other system tasks, enabling efficient resource sharing and predictable performance for audio applications on the Daisy Seed.
+- **Asynchronous Application Processing**: Leverage the power of Embassy's async framework to build responsive and efficient applications. `daisy-embassy`(and embassy) supports `async` handling of GPIO interrupts, MIDI message stream reading/writing, OLED display updates, AD/DA streaming, and other application logic, allowing developers to create complex, event-driven audio projects with ease.
 - **Simplified Setup**: Use the `new_daisy_board!` macro to initialize Daisy Seed peripherals with minimal boilerplate.
 - **Safe Configuration**: Get sane clock defaults via `daisy_embassy::default_rcc`, and avoid the usual headaches of manual peripheral and DMA setup.
 - **Flexible API**: Access peripherals through builder structs for safe defaults, or dive deeper with public accessors for custom configurations.
