@@ -141,7 +141,7 @@ impl Flash<'_> {
                 dummy: DummyCycles::_0,
             };
 
-            self.qspi.command(transaction);
+            self.qspi.blocking_command(transaction);
             self.wait_for_write();
 
             // Calculate number of bytes between address and end of the sector.
@@ -168,7 +168,7 @@ impl Flash<'_> {
             address: None,
             dummy: DummyCycles::_0,
         };
-        self.qspi.command(transaction);
+        self.qspi.blocking_command(transaction);
     }
 
     fn wait_for_write(&mut self) {
@@ -202,7 +202,7 @@ impl Flash<'_> {
             address: Some(0b0000_0010),
             dummy: DummyCycles::_0,
         };
-        self.qspi.command(transaction);
+        self.qspi.blocking_command(transaction);
         self.wait_for_write();
     }
 
@@ -218,7 +218,7 @@ impl Flash<'_> {
             address: Some(0b1111_1000),
             dummy: DummyCycles::_0,
         };
-        self.qspi.command(transaction);
+        self.qspi.blocking_command(transaction);
         self.wait_for_write();
     }
 
@@ -232,7 +232,7 @@ impl Flash<'_> {
             address: None,
             dummy: DummyCycles::_0,
         };
-        self.qspi.command(transaction);
+        self.qspi.blocking_command(transaction);
         self.wait_for_write();
     }
 }
