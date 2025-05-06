@@ -275,6 +275,17 @@ impl<'a> Interface<'a> {
         }
 
         info!("start SAI");
+        #[cfg(feature = "seed_1_2")]
+        {
+            // As the SAI configuration for the PCM3060
+            // codec requires the SAI reciever to be in
+            // slave mode, the master SAI has to be started
+            // as well for the slave SAI to work.
+            // As of embassy-stm32 v0.2.0 this can only
+            // be done by writing to the transmitter once.
+            let write_buf = [0; HALF_DMA_BUFFER_LENGTH];
+            self.sai_tx.write(&write_buf).await?;
+        }
         self.sai_rx.start()
     }
 }
