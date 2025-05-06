@@ -1,5 +1,9 @@
-# daisy-embassy
+# NOTE!! This repository has been moved!!
+The project has moved to a new location: [daisy-embassy/daisy-embassy](https://github.com/daisy-embassy/daisy-embassy).
 
+Please visit the new repository for the latest updates and development, and please update any git references in your Cargo.toml or other tooling.
+
+# daisy-embassy
 `daisy-embassy` is a Rust crate for building **embedded async audio applications** on the [Daisy Seed](https://electro-smith.com/products/daisy-seed) using the [Embassy framework](https://github.com/embassy-rs/embassy). It provides a streamlined interface to initialize and configure Daisy Seed hardware for **both** low-latency, non-blocking audio processing **and** powerful asynchronous application processing, making it an **ideal starting point** for embedded audio projects in Rust.
 
 This crate is designed for developers familiar with embedded systems and audio processing, but new to Rust's embedded ecosystem. It enables safe and flexible audio application development, leveraging Rust's type system to prevent common peripheral configuration errors at compile time.
